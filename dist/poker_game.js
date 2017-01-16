@@ -551,26 +551,6 @@ var CardComboList = function () {
                 return 0;
             })[0];
         }
-
-        // _getPairs() {
-        //     const cards = this.originalCollection.toArray();
-        //     const combos = [];
-        //     cards.forEach((card, cardIndex, cards) => {
-        //         for (let index = 0; index < cards.length; index++) {
-        //             if (cardIndex === index) continue;
-        //             const otherCard = cards[index];
-        //             if (card.value === otherCard.value) {
-        //                 combos.push(new CardCombo({
-        //                     type: ComboType.Pair,
-        //                     cards: [ card, otherCard ]
-        //                 }));
-        //             }
-        //         }
-        //     });
-
-        //     return Arrays.uniq(combos, (combo) => combo.getId());
-        // }
-
     }, {
         key: '_getTwoPairs',
         value: function _getTwoPairs() {
@@ -619,62 +599,6 @@ var CardComboList = function () {
                 return d.getId();
             });
         }
-
-        // _getThreeOfAKind() {
-        //     const cards = this.originalCollection.toArray();
-        //     const combos = [];
-        //     cards.forEach((card, cardIndex, cards) => {
-        //         const localeCards = [ card ];
-        //         for (let index = 0; index < cards.length - 1; index++) {
-        //             if (card !== cards[index] && card.value === cards[index].value) {
-        //                 localeCards.push(cards[index]);
-        //             }
-        //         }
-        //         if (localeCards.length === 3) {
-        //             combos.push(new CardCombo({
-        //                 type: ComboType.ThreeOfAKind,
-        //                 cards: localeCards.slice(0, 3)
-        //             }));
-        //         }
-        //     });
-
-        //     return Arrays.uniq(combos, (combo) => combo.getId());
-        // }
-
-        // _getFourOfAKind() {
-        //     const cards = this.originalCollection.toArray();
-        //     const combos = [];
-        //     cards.forEach((card, cardIndex, cards) => {
-        //         const localeCards = [ card ];
-        //         for (let index = 0; index < cards.length - 1; index++) {
-        //             if (card !== cards[index] && card.value === cards[index].value) {
-        //                 localeCards.push(cards[index]);
-        //             }
-        //         }
-        //         if (localeCards.length === 4) {
-        //             combos.push(new CardCombo({
-        //                 type: ComboType.FourOfAKind,
-        //                 cards: localeCards.slice(0, 4)
-        //             }));
-        //         }
-        //     });
-
-        //     cards.forEach((card, cardIndex, cards) => {
-        //         for (let index = 0; index < cards.length - 1; index++) {
-        //             if (index + 2 > cards.length - 1 || card === cards[index] || card === cards[index + 1] || card === cards[index + 2]) continue;
-
-        //             if (card.value === cards[index].value && card.value === cards[index + 1].value && card.value === cards[index + 2].value) {
-        //                 combos.push(new CardCombo({
-        //                     type: ComboType.FourOfAKind,
-        //                     cards: [ card, cards[index], cards[index + 1], cards[index + 2] ]
-        //                 }));
-        //             }
-        //         }
-        //     });
-
-        //     return Arrays.uniq(combos, (combo) => combo.getId());
-        // }
-
     }, {
         key: '_getFullHouse',
         value: function _getFullHouse() {
@@ -694,6 +618,7 @@ var CardComboList = function () {
     }, {
         key: '_getStraight',
         value: function _getStraight() {
+            // TODO: Joker
             var cards = this.originalCollection.toArray();
             var values = cards.map(function (d) {
                 return d.value;
@@ -743,14 +668,6 @@ var CardComboList = function () {
                     cards: flush.getCards()
                 });
             }
-        }
-    }, {
-        key: '_getFiveOfAKind',
-        value: function _getFiveOfAKind() {
-            var fourOfAKind = this.combos.find(function (d) {
-                return d.type === ComboType.FourOfAKind;
-            });
-            // Joker ?
         }
 
         /**
@@ -987,7 +904,7 @@ var Game = function () {
             this.cards = CardsGenerator.generateCards().shuffle();
             var forcedCards = 5;
 
-            [0, 1, 2, 4, CardsGenerator.JOKER_VALUE].forEach(function (value) {
+            [0, 1, 2, 2, CardsGenerator.JOKER_VALUE].forEach(function (value) {
                 var card = this.cards.getByValue(value);
                 this.player.addChild(card);
                 this.cards.remove(card);

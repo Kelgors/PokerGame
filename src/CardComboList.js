@@ -82,25 +82,6 @@ export class CardComboList {
             return 0;
         })[0];
     }
-    
-    // _getPairs() {
-    //     const cards = this.originalCollection.toArray();
-    //     const combos = [];
-    //     cards.forEach((card, cardIndex, cards) => {
-    //         for (let index = 0; index < cards.length; index++) {
-    //             if (cardIndex === index) continue;
-    //             const otherCard = cards[index];
-    //             if (card.value === otherCard.value) {
-    //                 combos.push(new CardCombo({
-    //                     type: ComboType.Pair,
-    //                     cards: [ card, otherCard ]
-    //                 }));
-    //             }
-    //         }
-    //     });
-            
-    //     return Arrays.uniq(combos, (combo) => combo.getId());
-    // }
 
     _getTwoPairs() {
         const pairs = [];
@@ -143,61 +124,6 @@ export class CardComboList {
         return Arrays.uniq(combos, (d) => d.getId());
     }
 
-    // _getThreeOfAKind() {
-    //     const cards = this.originalCollection.toArray();
-    //     const combos = [];
-    //     cards.forEach((card, cardIndex, cards) => {
-    //         const localeCards = [ card ];
-    //         for (let index = 0; index < cards.length - 1; index++) {
-    //             if (card !== cards[index] && card.value === cards[index].value) {
-    //                 localeCards.push(cards[index]);
-    //             }
-    //         }
-    //         if (localeCards.length === 3) {
-    //             combos.push(new CardCombo({
-    //                 type: ComboType.ThreeOfAKind,
-    //                 cards: localeCards.slice(0, 3)
-    //             }));
-    //         }
-    //     });
-            
-    //     return Arrays.uniq(combos, (combo) => combo.getId());
-    // }
-
-    // _getFourOfAKind() {
-    //     const cards = this.originalCollection.toArray();
-    //     const combos = [];
-    //     cards.forEach((card, cardIndex, cards) => {
-    //         const localeCards = [ card ];
-    //         for (let index = 0; index < cards.length - 1; index++) {
-    //             if (card !== cards[index] && card.value === cards[index].value) {
-    //                 localeCards.push(cards[index]);
-    //             }
-    //         }
-    //         if (localeCards.length === 4) {
-    //             combos.push(new CardCombo({
-    //                 type: ComboType.FourOfAKind,
-    //                 cards: localeCards.slice(0, 4)
-    //             }));
-    //         }
-    //     });
-
-    //     cards.forEach((card, cardIndex, cards) => {
-    //         for (let index = 0; index < cards.length - 1; index++) {
-    //             if (index + 2 > cards.length - 1 || card === cards[index] || card === cards[index + 1] || card === cards[index + 2]) continue;
-                
-    //             if (card.value === cards[index].value && card.value === cards[index + 1].value && card.value === cards[index + 2].value) {
-    //                 combos.push(new CardCombo({
-    //                     type: ComboType.FourOfAKind,
-    //                     cards: [ card, cards[index], cards[index + 1], cards[index + 2] ]
-    //                 }));
-    //             }
-    //         }
-    //     });
-            
-    //     return Arrays.uniq(combos, (combo) => combo.getId());
-    // }
-
     _getFullHouse() {
         const pair = this.combos.find((d) => d.type === ComboType.Pair);
         const threeOfAKind = this.combos.find((d) => d.type === ComboType.ThreeOfAKind);
@@ -210,6 +136,7 @@ export class CardComboList {
     }
 
     _getStraight() {
+        // TODO: Joker
         const cards = this.originalCollection.toArray();
         const values = cards.map((d) => d.value).sort();
         for (let index = 1, i = values[0]; index < values.length; index++) {
@@ -250,11 +177,6 @@ export class CardComboList {
                 cards: flush.getCards()
             });
         }
-    }
-
-    _getFiveOfAKind() {
-        const fourOfAKind = this.combos.find((d) => d.type === ComboType.FourOfAKind);
-        // Joker ?
     }
 
     /**

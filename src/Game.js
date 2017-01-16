@@ -76,7 +76,7 @@ export default class Game {
         this.cards = CardsGenerator.generateCards().shuffle();
         const forcedCards = 5;
         
-        [ 0, 1, 2, 4, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
+        [ 0, 1, 2, 2, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
             const card = this.cards.getByValue(value);
             this.player.addChild(card);
             this.cards.remove(card);
