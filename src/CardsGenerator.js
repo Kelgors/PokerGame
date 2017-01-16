@@ -2,8 +2,10 @@ import CardCollection from './CardCollection';
 import Card from './Card';
 
 const CardsGenerator = {
-    CARD_WIDTH: 370 / 3,
-    CARD_HEIGHT: 522 / 3,
+    CARD_WIDTH: 370 / 4,
+    CARD_HEIGHT: 522 / 4,
+    JOKER: 'Joker',
+    JOKER_VALUE: 13,
     SUITS: [ 'Spades', 'Hearts', 'Diamonds', 'Clubs' ],
     VALUE_LABELS: [ '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace' ],
     generateCards() {
@@ -17,6 +19,14 @@ const CardsGenerator = {
                     value: valueIndex
                 }));
             }
+        }
+        for (let index = 0; index < 2; index++) {
+            output.push(new Card({ 
+                width: CardsGenerator.CARD_WIDTH,
+                height: CardsGenerator.CARD_HEIGHT,
+                suit: CardsGenerator.JOKER,
+                value: CardsGenerator.JOKER_VALUE
+            }));
         }
         return new CardCollection(output);
     }

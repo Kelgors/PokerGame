@@ -15,7 +15,7 @@ export default class Card extends PIXI.Graphics {
       .drawRoundedRect(0, 0, width, height, width/10)
       .endFill();
     this.text = new PIXI.Text(this.toString().split(' of ').join('\nof '), {
-      fontSize: 22,
+      fontSize: 14,
       textColor: 0,
       align: 'center'
     });
@@ -25,11 +25,17 @@ export default class Card extends PIXI.Graphics {
     this.addChild(this.text);
   }
 
+  isJoker() {
+    return this.value === CardsGenerator.JOKER_VALUE;
+  }
+
   getSuit() {
+    if (this.suit === CardsGenerator.JOKER) return 'Joker';
     return CardsGenerator.SUITS[this.suit];
   }
 
   getValue() {
+    if (this.value === CardsGenerator.JOKER_VALUE) return 'Joker';
     return CardsGenerator.VALUE_LABELS[this.value];
   }
 

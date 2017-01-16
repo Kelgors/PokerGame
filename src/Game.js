@@ -1,6 +1,8 @@
 import CardsGenerator from './CardsGenerator';
 import PlayerArea from './PlayerArea';
 import {CardComboList} from './CardComboList';
+import LinearLayout from './gui/LinearLayout';
+import GUICombosList from './gui/debug/GUICombosList';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 
@@ -15,7 +17,7 @@ export default class Game {
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
 
         this.fg = new PIXI.Container();
-        this.gui = new PIXI.Container();
+        this.gui = new LinearLayout();
         this.renderingContainer = new PIXI.Container();
         this.renderingContainer.addChild(this.fg);
         this.renderingContainer.addChild(this.gui);
@@ -63,23 +65,43 @@ export default class Game {
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
         this.player = new PlayerArea(stageWidth/2, stageHeight/3*2);
-        this.cards = CardsGenerator.generateCards().shuffle();
 
         this.fg.addChild(this.player);
-        const forcedCards = 5;
+        this.gui.addChild(new GUICombosList()); 
+          
+    }
 
-        for (let i = 0; i < forcedCards; i++) {
-            let card = this.cards.getByValue(12);
-            if (i > 2) card = this.cards.getByValue(2);
-            this.player.addChild(card)
+    distribute() {
+        this.player.removeChildren();
+        this.cards = CardsGenerator.generateCards().shuffle();
+        const forcedCards = 5;
+        
+        [ 0, 1, 2, 4, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
+            const card = this.cards.getByValue(value);
+            this.player.addChild(card);
             this.cards.remove(card);
-        }
+        }, this);
+
+        // for (let i = 0; i < forcedCards; i++) {
+        //     let card = this.cards.getByValue(2);
+        //     if (i > 3) card = this.cards.getByValue(4);
+        //     this.player.addChild(card)
+        //     this.cards.remove(card);
+        // }
+
+        // for (let i = 0; i < forcedCards; i++) {
+        //     let card = this.cards.getByValue(i + 1);
+        //     this.player.addChild(card)
+        //     this.cards.remove(card);
+        // }
+
+
 
         for (let index = 0; index < 5 - forcedCards; index++) {
             let card = this.cards.peek()
             this.player.addChild(card);
             this.cards.remove(card);
-        }   
+        }
     }
 
     setState(state) {
@@ -135,7 +157,11 @@ export default class Game {
 
     loop(time) {
         this._frame += 1;
+        this.gui.update(this);
         this.renderer.render(this.renderingContainer);
+        if (this._frame % 10 === 0) {
+            
+        }
     }
 
     getCardComboList() {

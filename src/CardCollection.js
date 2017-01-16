@@ -1,3 +1,5 @@
+import Card from './Card';
+
 export default class CardCollection {
 
     static from(arrayOfCard) {
@@ -91,6 +93,9 @@ export default class CardCollection {
         return this.cards.slice(0);
     }
 
+    /**
+     * @returns {String}
+     */
     toString() {
         return this.cards.toString();
     }
