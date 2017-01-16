@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="/index.css" type="text/css">
+    </head>
+    <body>
+        <div class="right-container">
+            <H4>Commands</H4>
+            <button onclick="location.reload(true)">Reload</button>
+            <button onclick="game.stop();game.clearGame();game.newGame();game.start()">Start New Game</button>
+            <button onclick="game.stop()">Stop Game</button>
+            <button onclick="game.stop();game.clearGame();game.newGame();game.start()">Distribute</button>
+            <button onclick="window.DEBUG_HITBOX_MODE = !window.DEBUG_HITBOX_MODE">Toggle hitBox</button>
+            <button onclick="window.DEBUG_FPS = !window.DEBUG_FPS">Toggle fps</button>
+            <button onclick="window.DEBUG_FALLING_OBJECTS = !window.DEBUG_FALLING_OBJECTS">Toggle fallingList</button>
+            
+        </div>
+        <section id="viewport">
+            <img src="/background.jpg">
+        </section>
+        <script src="/mersennetwister/src/MersenneTwister.js"></script>
+        <script src="/jquery/dist/jquery.min.js"></script>
+        <script src="/pixi.js/dist/pixi.js"></script>
+        <script src="poker_game.js"></script>
+        <script src="/index.js" async></script>
+    </body>
+</html>

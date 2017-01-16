@@ -1,0 +1,7 @@
+{
+  "name": "poker_game",
+  "dependencies": {},
+  "globalDependencies": {
+    "pixi.js": "registry:dt/pixi.js#4.1.0+20161128184045"
+  }
+}
