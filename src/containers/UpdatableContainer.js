@@ -23,4 +23,12 @@ export default class UpdatableContainer extends PIXI.Container {
     findChildrenByType(Type) {
         return this.children.find((d) => d instanceof Type);
     }
+
+    /**
+     * @param {Function} Type
+     * @returns {PIXI.DisplayObject[]}
+     */
+    findAllChildByType(Type) {
+        return this.children.filter((d) => d instanceof Type);
+    }
 }

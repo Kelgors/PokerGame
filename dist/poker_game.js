@@ -34,7 +34,20 @@ var createClass = function () {
 
 
 
+var defineProperty = function (obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
 
+  return obj;
+};
 
 var get = function get(object, property, receiver) {
   if (object === null) object = Function.prototype;
@@ -181,6 +194,19 @@ var UpdatableContainer = function (_PIXI$Container) {
         key: 'findChildrenByType',
         value: function findChildrenByType(Type) {
             return this.children.find(function (d) {
+                return d instanceof Type;
+            });
+        }
+
+        /**
+         * @param {Function} Type
+         * @returns {PIXI.DisplayObject[]}
+         */
+
+    }, {
+        key: 'findAllChildByType',
+        value: function findAllChildByType(Type) {
+            return this.children.filter(function (d) {
                 return d instanceof Type;
             });
         }
@@ -1413,6 +1439,16 @@ var Tracker = {
     }
 };
 
+var _translations;
+
+var translations = (_translations = {}, defineProperty(_translations, ComboType.Pair, 'Paire'), defineProperty(_translations, ComboType.ThreeOfAKind, 'Brelan'), defineProperty(_translations, ComboType.FourOfAKind, 'Carré'), defineProperty(_translations, ComboType.FiveOfAKind, 'Quinte'), defineProperty(_translations, ComboType.Flush, 'Flush'), defineProperty(_translations, ComboType.FullHouse, 'Full'), defineProperty(_translations, ComboType.HigherCard, 'Higher Card'), defineProperty(_translations, ComboType.TwoPair, 'Deux paires'), _translations);
+
+var i18n = {
+    combo: function combo(name, defaultValue) {
+        return translations[name] || defaultValue;
+    }
+};
+
 var TRANSITION_DURATION = 150;
 var TRANSITION_DELAY = 1000;
 
@@ -1466,14 +1502,14 @@ var GUIScoreLayout = function (_UpdatableContainer) {
     }, {
         key: 'spawnSuitName',
         value: function spawnSuitName() {
-            this.addChild(new GUIText(this.playerCombo.getTypeName(), BigText.textConfig));
+            this.addChild(new GUIText(i18n.combo(this.playerCombo.type, this.playerCombo.getTypeName()), BigText.textConfig));
         }
     }, {
         key: 'spawnComparison',
         value: function spawnComparison() {
             //const iaScore = this.iaCombo.getScore();
-            var iaScore = 10;
-            var playerScore = this.playerCombo.getScore();
+            var iaScore = ComboType.Pair;
+            var playerScore = this.playerCombo.type;
             console.log('playerScore: %s, iaScore: %s', playerScore, iaScore);
             var comparisonLabel = 'Défaite';
             if (playerScore > iaScore) {
@@ -1570,6 +1606,380 @@ GUIScoreLayout.STATE_TRANSITION_SUIT = 1;
 GUIScoreLayout.STATE_TRANSITION_COMPARISON = 2;
 GUIScoreLayout.STATE_TRANSITION_COMPARISON_ENDING = 4;
 GUIScoreLayout.STATE_TRANSITION_TERMINATED = 8;
+
+var ContextualBox = function (_PIXI$Graphics) {
+    inherits(ContextualBox, _PIXI$Graphics);
+
+    function ContextualBox() {
+        classCallCheck(this, ContextualBox);
+
+        var _this = possibleConstructorReturn(this, (ContextualBox.__proto__ || Object.getPrototypeOf(ContextualBox)).call(this));
+
+        _this._isValid = false;
+        return _this;
+    }
+
+    createClass(ContextualBox, [{
+        key: 'clear',
+        value: function clear() {
+            this.removeChildren();
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            if (!this._isValid) {
+                this.drawBox(game);
+                this._isValid = true;
+            }
+        }
+    }, {
+        key: 'drawBox',
+        value: function drawBox(game) {}
+    }, {
+        key: 'invalidate',
+        value: function invalidate() {
+            this._isValid = false;
+        }
+    }, {
+        key: '_drawBox',
+        value: function _drawBox(graphics, rect) {
+            graphics.moveTo(rect.left, rect.top).lineStyle(1, 0, 1).beginFill(0x675C53, 1).lineTo(rect.right, rect.top).lineTo(rect.right, rect.bottom).lineTo(rect.left, rect.bottom).lineTo(rect.left, rect.top).endFill();
+        }
+    }]);
+    return ContextualBox;
+}(PIXI$1.Graphics);
+
+var Rect = function () {
+    function Rect(top, right, bottom, left) {
+        classCallCheck(this, Rect);
+
+        this.set(top || 0, right || 0, bottom || 0, left || 0);
+    }
+
+    createClass(Rect, [{
+        key: "set",
+        value: function set(top, right, bottom, left) {
+            this.top = top;
+            this.right = right;
+            this.bottom = bottom;
+            this.left = left;
+        }
+    }, {
+        key: "scale",
+        value: function scale(x, y) {
+            return new Rect(this.top * y, this.right * x, this.bottom * y, this.left * x);
+        }
+    }]);
+    return Rect;
+}();
+
+var ContextualDisplayer = function (_ContextualBox) {
+    inherits(ContextualDisplayer, _ContextualBox);
+
+    function ContextualDisplayer() {
+        classCallCheck(this, ContextualDisplayer);
+        return possibleConstructorReturn(this, (ContextualDisplayer.__proto__ || Object.getPrototypeOf(ContextualDisplayer)).call(this));
+    }
+
+    createClass(ContextualDisplayer, [{
+        key: 'drawBox',
+        value: function drawBox(game) {
+            /** @type {PIXI.Graphics} */
+            var graphics = this;
+            var rect = new Rect(0, this.parent.getWidth() * 4 / 5 - 10, this.parent.getHeight(), 0);
+            this._drawBox(graphics, rect);
+        }
+    }, {
+        key: 'displayControls',
+        value: function displayControls() {
+            this.removeChildren();
+            var col1 = new LinearLayout({ childMargin: 15 });
+            var col2 = new LinearLayout({ childMargin: 15 });
+            var rows = new LinearLayout({
+                orientation: LinearLayout.ORIENTATION_HORIZONTAL,
+                childMargin: 12,
+                x: 30
+            });
+
+            var textStyle = {
+                fontSize: 16,
+                fill: 0xffffff,
+                stroke: 0,
+                strokeThickness: 3
+            };
+
+            col1.addChild(new PIXI.Text('\u25C0 \u25B6 D\xE9placer le curseur', textStyle));
+            col1.addChild(new PIXI.Text('\u2B06 / \u2B07 S\xE9lectionner une carte', textStyle));
+            col1.updateChildrenPosition();
+
+            col2.addChild(new PIXI.Text('Shift + \u2B06 / \u2B07 S\xE9lectionner toutes les cartes', textStyle));
+            col2.addChild(new PIXI.Text('Entrée Changer de carte', textStyle));
+            col1.updateChildrenPosition();
+            col2.updateChildrenPosition();
+
+            rows.addChild(col1);
+            rows.addChild(col2);
+            rows.updateChildrenPosition();
+
+            var label = new PIXI.Text('Sélectionnez les cartes que vous souhaitez échanger.', textStyle);
+            label.x = 30;
+            label.y = 10;
+            this.addChild(label);
+            rows.y = label.y + label.height + 15;
+            this.addChild(rows);
+        }
+
+        /**
+         * @param {CardCombo}
+         */
+
+    }, {
+        key: 'displayCombo',
+        value: function displayCombo(combo) {
+            this.removeChildren();
+            var row = new LinearLayout();
+            row.x = 30;
+
+            var textStyle = {
+                fill: 0xffa172,
+                stroke: 0,
+                strokeThickness: 3,
+                fontSize: 18
+            };
+
+            row.addChild(new PIXI.Text('"' + i18n.combo(combo.type, combo.getTypeName()) + '"', textStyle));
+
+            row.updateChildrenPosition();
+            row.y = row.height / 2;
+            this.addChild(row);
+        }
+    }, {
+        key: 'displayChooseBet',
+        value: function displayChooseBet() {
+            this.removeChildren();
+            var texts = new LinearLayout({
+                orientation: LinearLayout.ORIENTATION_HORIZONTAL
+            });
+            texts.x = 30;
+
+            var textStyleWhite = {
+                fontSize: 18,
+                fill: 0xffffff,
+                stroke: 0,
+                strokeThickness: 4
+            };
+            var textStyleOrange = {
+                fontSize: 18,
+                fill: 0xff9763,
+                stroke: 0,
+                strokeThickness: 4
+            };
+
+            texts.addChild(new PIXI.Text('Voulez-vous', textStyleWhite));
+            texts.addChild(new PIXI.Text('doubler', textStyleOrange));
+            texts.addChild(new PIXI.Text('votre mise ?', textStyleWhite));
+
+            texts.updateChildrenPosition();
+            texts.y = texts.height / 2;
+            this.addChild(texts);
+        }
+    }]);
+    return ContextualDisplayer;
+}(ContextualBox);
+
+var GUICursor = function (_PIXI$Graphics) {
+    inherits(GUICursor, _PIXI$Graphics);
+
+    function GUICursor() {
+        classCallCheck(this, GUICursor);
+
+        var _this = possibleConstructorReturn(this, (GUICursor.__proto__ || Object.getPrototypeOf(GUICursor)).call(this));
+
+        var WIDTH = 15;
+        var HEIGHT = WIDTH;
+        _this.clear().lineStyle(2, 0, 1).moveTo(0, 0).beginFill(0xffffff, 1).lineTo(WIDTH, HEIGHT / 2).lineTo(0, HEIGHT).lineTo(0, 0).endFill();
+        _this.pivot.set(WIDTH, -HEIGHT / 2);
+        return _this;
+    }
+
+    createClass(GUICursor, [{
+        key: 'update',
+        value: function update(game) {
+            this.x += Math.cos(game._frame / 10) / 6;
+        }
+    }]);
+    return GUICursor;
+}(PIXI$1.Graphics);
+
+var MENU_ITEM_FONT_SIZE = {
+    2: 22
+};
+
+var ContextualMenu = function (_ContextualBox) {
+    inherits(ContextualMenu, _ContextualBox);
+
+    function ContextualMenu() {
+        classCallCheck(this, ContextualMenu);
+
+        /** @type {GUICursor} */
+        var _this = possibleConstructorReturn(this, (ContextualMenu.__proto__ || Object.getPrototypeOf(ContextualMenu)).call(this));
+
+        _this.currentCursor = null;
+        _this.currentCursorIndex = 0;
+        return _this;
+    }
+
+    createClass(ContextualMenu, [{
+        key: 'removeChildren',
+        value: function removeChildren() {
+            this.currentCursorIndex = 0;
+            if (this.currentCursor) this.currentCursor = null;
+            get(ContextualMenu.prototype.__proto__ || Object.getPrototypeOf(ContextualMenu.prototype), 'removeChildren', this).call(this);
+        }
+    }, {
+        key: 'drawBox',
+        value: function drawBox(game) {
+            /** @type {PIXI.Graphics} */
+            var graphics = this;
+            this.x = this.parent.getWidth() * 4 / 5;
+            var rect = new Rect(0, this.parent.getWidth() * 1 / 5, this.parent.getHeight(), 0);
+            this._drawBox(graphics, rect);
+        }
+    }, {
+        key: 'displayMenu',
+        value: function displayMenu(menuItems) {
+            this.removeChildren();
+            var layout = new LinearLayout();
+            for (var index = 0; index < menuItems.length; index++) {
+                var menuDesc = menuItems[index];
+                var menuitem = new PIXI.Text(menuDesc.label, {
+                    fontSize: MENU_ITEM_FONT_SIZE[menuItems.length],
+                    fill: 0xffffff,
+                    stroke: 0,
+                    strokeThickness: 3
+                });
+                menuitem.menuItemIndex = index;
+                menuitem.menuItemCallback = menuDesc.callback;
+                layout.addChild(menuitem);
+            }
+
+            layout.updateChildrenPosition();
+            layout.x = this.width / 2 - layout.width / 2;
+            layout.y = layout.height / 2;
+            this.addChild(layout);
+            this.currentCursor = new GUICursor();
+            this.addChild(this.currentCursor);
+            this.setCursorIndex(0);
+        }
+    }, {
+        key: 'setCursorIndex',
+        value: function setCursorIndex(index) {
+            var menuItems = this.getChildAt(0).children;
+            if (index < 0) index = menuItems.length - 1;
+            if (index >= menuItems.length) index = 0;
+            var position = this.getChildAt(0).getChildPositionAt(index);
+            this.currentCursor.y = position.y;
+            this.currentCursor.x = position.x - 15;
+            this.currentCursorIndex = index;
+        }
+    }, {
+        key: 'hasCursor',
+        value: function hasCursor() {
+            return this.currentCursor !== null;
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            get(ContextualMenu.prototype.__proto__ || Object.getPrototypeOf(ContextualMenu.prototype), 'update', this).call(this, game);
+            if (this.hasCursor()) {
+                this.currentCursor.update(game);
+                if (Keyboard.isKeyReleased(Keyboard.UP_ARROW)) {
+                    this.setCursorIndex(this.currentCursorIndex - 1);
+                } else if (Keyboard.isKeyReleased(Keyboard.DOWN_ARROW)) {
+                    this.setCursorIndex(this.currentCursorIndex + 1);
+                } else if (Keyboard.isKeyReleased(Keyboard.ENTER)) {
+                    var item = this.getChildAt(0).getChildAt(this.currentCursorIndex);
+                    if (item && item.menuItemCallback) item.menuItemCallback();
+                }
+            }
+        }
+    }]);
+    return ContextualMenu;
+}(ContextualBox);
+
+var MARGIN_HONRIZONTAL = 10;
+var MARGIN_VERTICAL = 15;
+
+var GUIContext = function (_UpdatableContainer) {
+    inherits(GUIContext, _UpdatableContainer);
+
+    function GUIContext(x, y, game) {
+        classCallCheck(this, GUIContext);
+
+        /** @type {Game} */
+        var _this = possibleConstructorReturn(this, (GUIContext.__proto__ || Object.getPrototypeOf(GUIContext)).call(this));
+
+        _this.game = game;
+        _this.x = x + MARGIN_HONRIZONTAL;
+        _this.y = y - MARGIN_VERTICAL;
+        _this.addChild(new ContextualDisplayer());
+        _this.addChild(new ContextualMenu());
+        return _this;
+    }
+
+    createClass(GUIContext, [{
+        key: 'update',
+        value: function update(game) {
+            this._width = game.renderer.width - MARGIN_HONRIZONTAL * 2;
+            this._height = game.renderer.height - this.y - MARGIN_VERTICAL;
+            get(GUIContext.prototype.__proto__ || Object.getPrototypeOf(GUIContext.prototype), 'update', this).call(this, game);
+        }
+    }, {
+        key: 'getWidth',
+        value: function getWidth() {
+            return this._width;
+        }
+    }, {
+        key: 'getHeight',
+        value: function getHeight() {
+            return this._height;
+        }
+    }, {
+        key: 'displayControls',
+        value: function displayControls() {
+            this.getChildAt(0).displayControls();
+            this.getChildAt(1).removeChildren();
+        }
+    }, {
+        key: 'displayCombo',
+        value: function displayCombo(combo) {
+            this.getChildAt(0).displayCombo(combo);
+            this.getChildAt(1).removeChildren();
+        }
+    }, {
+        key: 'displayChooseBet',
+        value: function displayChooseBet() {
+            var _this2 = this;
+
+            this.getChildAt(0).displayChooseBet();
+            this.getChildAt(1).displayMenu([{
+                label: 'Yes',
+                callback: function callback() {
+                    return _this2.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN);
+                }
+            }, {
+                label: 'No',
+                callback: function callback() {
+                    return _this2.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                }
+            }]);
+        }
+    }, {
+        key: 'displayMenu',
+        value: function displayMenu() {}
+    }]);
+    return GUIContext;
+}(UpdatableContainer);
 
 var AbsCardArea = function (_LinearLayout) {
     inherits(AbsCardArea, _LinearLayout);
@@ -1819,12 +2229,15 @@ var Game = function () {
     }, {
         key: 'newGame',
         value: function newGame() {
-            this.gameState = Game.GAME_PLAYING;
+            this.gameState = Game.STATE_IDLE;
 
             var stageWidth = this.renderer.width;
             var stageHeight = this.renderer.height;
-            this.river = new CardRiverArea(stageWidth / 2, stageHeight / 3 * 2);
+            this.river = new CardRiverArea(stageWidth / 2, stageHeight / 4 * 2);
             this.fg.addChild(this.river);
+            var contextualBox = new GUIContext(0, stageHeight * 5 / 6, this);
+            this.fg.addChild(contextualBox);
+            contextualBox.update(this);
             this.clearBoard();
             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
         }
@@ -1882,6 +2295,7 @@ var Game = function () {
                 case Game.STATE_PLAYING_CHOOSE_CARDS:
                     Tracker.track('game:new');
                     this.gui.destroyChildren();
+                    this.fg.findChildrenByType(GUIContext).displayControls();
                     this.clearBoard();
                     this.distribute(5);
                     this.displayCardCursorSelection();
@@ -1896,6 +2310,7 @@ var Game = function () {
                         type: combo.getTypeName(),
                         cards: combo.getCards().map(String)
                     });
+                    this.fg.findChildrenByType(GUIContext).displayCombo(combo);
                     this.gui.addChild(new GUIScoreLayout({
                         playerCombo: combo,
                         game: this
@@ -1903,6 +2318,8 @@ var Game = function () {
 
                     break;
                 case Game.STATE_PLAYING_CHOOSE_RISK:
+                    this.gui.destroyChildren();
+                    this.fg.findChildrenByType(GUIContext).displayChooseBet();
                     break;
 
             }
@@ -1964,16 +2381,26 @@ var Game = function () {
 
             this.fg.update(this);
             this.gui.update(this);
+            if (this.gameState === Game.STATE_PLAYING) {
+                if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
+                    if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
+                    }
+                } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
+                    var scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
+                    if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        if (scoreLayout.playerCombo.type > 2) {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                        } else {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                        }
+                    }
+                }
+            }
 
-            if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
-                if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                    this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
-                }
-            } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-                var scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
-                if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                    this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
-                }
+            if (this.gameState === Game.STATE_IDLE) {
+                this.gameState = Game.STATE_PLAYING;
+                this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
             }
 
             this.renderer.render(this.renderingContainer);
@@ -2021,6 +2448,8 @@ var Game = function () {
 }();
 
 
+
+Game.STATE_IDLE = 0;
 Game.STATE_INTRO = 1;
 Game.STATE_PLAYING = 2;
 Game.STATE_GAMEOVER = 4;
@@ -2033,10 +2462,10 @@ Game.STATE_PLAYING_CHOOSE_RISK = 16;
 Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 32;
 Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 64;
 
-var version = "0.0.1-PRE-Alpha";
+var version = "0.0.4-PRE-Alpha";
 
 Game.VERSION = version;
-Game.BUILD_TIME = '01-18-2017 20:36:19';
+Game.BUILD_TIME = '01-19-2017 00:20:52';
 
 Tracker.track('pageview');
 

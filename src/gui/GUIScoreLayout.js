@@ -5,6 +5,7 @@ import BezierEasing from '../lib/BezierEasing';
 import UpdatableContainer from '../containers/UpdatableContainer';
 import GUIText from '../lib/GUIText';
 import {CardCombo, ComboType} from '../CardComboList';
+import i18n from '../i18n';
 
 const TRANSITION_DURATION = 150;
 const TRANSITION_DELAY = 1000;
@@ -51,13 +52,13 @@ export default class GUIScoreLayout extends UpdatableContainer {
     }
 
     spawnSuitName() {
-        this.addChild(new GUIText(this.playerCombo.getTypeName(), BigText.textConfig));
+        this.addChild(new GUIText(i18n.combo(this.playerCombo.type, this.playerCombo.getTypeName()), BigText.textConfig));
     }
 
     spawnComparison() {
         //const iaScore = this.iaCombo.getScore();
-        const iaScore = 10;
-        const playerScore = this.playerCombo.getScore();
+        const iaScore = ComboType.Pair;
+        const playerScore = this.playerCombo.type;
         console.log('playerScore: %s, iaScore: %s', playerScore, iaScore);
         let comparisonLabel = 'Défaite';
         if (playerScore > iaScore) {

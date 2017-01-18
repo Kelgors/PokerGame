@@ -9,6 +9,7 @@ import GUIText from './lib/GUIText';
 import Tracker from './Tracker';
 
 import GUIScoreLayout from './gui/GUIScoreLayout';
+import GUIContext from './gui/GUIContext';
 
 import CardCollection from './CardCollection';
 
@@ -74,12 +75,15 @@ export default class Game {
     }
 
     newGame() {
-        this.gameState = Game.GAME_PLAYING;
+        this.gameState = Game.STATE_IDLE;
 
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
-        this.river = new CardRiverArea(stageWidth/2, stageHeight/3*2);
+        this.river = new CardRiverArea(stageWidth/2, stageHeight/4*2);
         this.fg.addChild(this.river);
+        const contextualBox = new GUIContext(0, stageHeight * 5/6, this);
+        this.fg.addChild(contextualBox);
+        contextualBox.update(this);
         this.clearBoard();
         this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
           
@@ -133,6 +137,7 @@ export default class Game {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
                 Tracker.track('game:new');
                 this.gui.destroyChildren();
+                this.fg.findChildrenByType(GUIContext).displayControls();
                 this.clearBoard();
                 this.distribute(5);
                 this.displayCardCursorSelection();
@@ -147,6 +152,7 @@ export default class Game {
                     type: combo.getTypeName(),
                     cards: combo.getCards().map(String)
                 });
+                this.fg.findChildrenByType(GUIContext).displayCombo(combo);
                 this.gui.addChild(new GUIScoreLayout({
                     playerCombo: combo,
                     game: this
@@ -154,6 +160,8 @@ export default class Game {
                 
                 break;
             case Game.STATE_PLAYING_CHOOSE_RISK:
+                this.gui.destroyChildren();
+                this.fg.findChildrenByType(GUIContext).displayChooseBet();
                 break;
             
         }
@@ -207,16 +215,26 @@ export default class Game {
 
         this.fg.update(this);
         this.gui.update(this);
+        if (this.gameState === Game.STATE_PLAYING) {
+            if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
+                if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                    this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
+                }
+            } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
+                let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);  
+                if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                    if (scoreLayout.playerCombo.type > 2) {
+                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                    } else {
+                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                    }
+                }
+            }
+        }
 
-        if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
-            if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
-            }
-        } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-            let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);  
-            if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
-            }
+        if (this.gameState === Game.STATE_IDLE) {
+            this.gameState = Game.STATE_PLAYING;
+            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
         }
 
         this.renderer.render(this.renderingContainer);
@@ -255,6 +273,8 @@ export default class Game {
     }
 
 };
+
+Game.STATE_IDLE = 0;
 Game.STATE_INTRO = 1;
 Game.STATE_PLAYING = 2;
 Game.STATE_GAMEOVER = 4;
