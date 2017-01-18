@@ -9,6 +9,8 @@ html, body {
 #viewport {
     overflow: hidden;
     position: relative;
+    width: 100%;
+    height: 100%;
 }
 #viewport canvas, img {
     position: absolute;
@@ -22,6 +24,7 @@ html, body {
 .right-container {
     float: left;
     margin: 2px;
+    display: none;
 }
 .right-container button {
     display: block;

@@ -18,6 +18,10 @@ export default class CardCollection {
         }
     }
 
+    destroy() {
+        this.cards.forEach((d) => d.destroy());
+    }
+
     /**
      * @param {Card[]} cards
      */

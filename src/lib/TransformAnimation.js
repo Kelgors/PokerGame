@@ -3,7 +3,6 @@ import Timer from '../lib/Timer';
 
 export default class TransformAnimation {
     /**
-     * @class
      * @param {Object} options
      * @param {PIXI.Point} options.posFrom
      * @param {PIXI.Point} options.posTo
@@ -16,7 +15,6 @@ export default class TransformAnimation {
      * @param {number} options.duration
      * @param {Function} options.callback
     */
-    // 0.42,0.14,0.44,0.97
     constructor(options) {
         this.posFrom = options.posFrom || null;
         this.posTo = options.posTo || null;

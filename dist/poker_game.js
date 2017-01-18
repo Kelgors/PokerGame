@@ -97,14 +97,14 @@ var possibleConstructorReturn = function (self, call) {
 
 
 
-var set = function set(object, property, value, receiver) {
+var set$1 = function set$1(object, property, value, receiver) {
   var desc = Object.getOwnPropertyDescriptor(object, property);
 
   if (desc === undefined) {
     var parent = Object.getPrototypeOf(object);
 
     if (parent !== null) {
-      set(parent, property, value, receiver);
+      set$1(parent, property, value, receiver);
     }
   } else if ("value" in desc && desc.writable) {
     desc.value = value;
@@ -155,6 +155,14 @@ var UpdatableContainer = function (_PIXI$Container) {
         key: "update",
         value: function update(game) {
             this.updateChildren(game);
+        }
+    }, {
+        key: "destroyChildren",
+        value: function destroyChildren() {
+            this.children.forEach(function (d) {
+                return d.destroy();
+            });
+            this.removeChildren();
         }
     }, {
         key: "updateChildren",
@@ -232,6 +240,57 @@ function newtonRaphsonIterate(aX, aGuessT, mX1, mX2) {
         aGuessT -= currentX / currentSlope;
     }
     return aGuessT;
+}
+
+function bezier(mX1, mY1, mX2, mY2) {
+    if (!(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)) {
+        throw new Error('bezier x values must be in [0, 1] range');
+    }
+
+    // Precompute samples table
+    var sampleValues = float32ArraySupported ? new Float32Array(kSplineTableSize) : new Array(kSplineTableSize);
+    if (mX1 !== mY1 || mX2 !== mY2) {
+        for (var i = 0; i < kSplineTableSize; ++i) {
+            sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
+        }
+    }
+
+    function getTForX(aX) {
+        var intervalStart = 0.0;
+        var currentSample = 1;
+        var lastSample = kSplineTableSize - 1;
+
+        for (; currentSample !== lastSample && sampleValues[currentSample] <= aX; ++currentSample) {
+            intervalStart += kSampleStepSize;
+        }--currentSample;
+
+        // Interpolate to provide an initial guess for t
+        var dist = (aX - sampleValues[currentSample]) / (sampleValues[currentSample + 1] - sampleValues[currentSample]);
+        var guessForT = intervalStart + dist * kSampleStepSize;
+
+        var initialSlope = getSlope(guessForT, mX1, mX2);
+        if (initialSlope >= NEWTON_MIN_SLOPE) {
+            return newtonRaphsonIterate(aX, guessForT, mX1, mX2);
+        } else if (initialSlope === 0.0) {
+            return guessForT;
+        } else {
+            return binarySubdivide(aX, intervalStart, intervalStart + kSampleStepSize, mX1, mX2);
+        }
+    }
+
+    return function BezierEasing(x) {
+        if (mX1 === mY1 && mX2 === mY2) {
+            return x; // linear
+        }
+        // Because JavaScript number are imprecise, we should guarantee the extremes are right.
+        if (x === 0) {
+            return 0;
+        }
+        if (x === 1) {
+            return 1;
+        }
+        return calcBezier(getTForX(x), mY1, mY2);
+    };
 }
 
 var Card = function (_PIXI$Graphics) {
@@ -337,12 +396,19 @@ var CardCollection = function () {
         }
     }
 
-    /**
-     * @param {Card[]} cards
-     */
-
-
     createClass(CardCollection, [{
+        key: 'destroy',
+        value: function destroy() {
+            this.cards.forEach(function (d) {
+                return d.destroy();
+            });
+        }
+
+        /**
+         * @param {Card[]} cards
+         */
+
+    }, {
         key: 'addAll',
         value: function addAll(cards) {
             var _cards;
@@ -952,6 +1018,18 @@ var Debug = {
     }
 };
 
+var BigText = {
+    textConfig: {
+        fontSize: 72,
+        fontFamily: 'Verdana',
+        fill: 0xffff00,
+        stroke: 0xef0000,
+        strokeThickness: 8,
+        fontVariant: 'small-caps',
+        fontWeight: 900
+    }
+};
+
 var GUICombosList = function (_PIXI$Text) {
     inherits(GUICombosList, _PIXI$Text);
 
@@ -1105,8 +1183,8 @@ var GUICardSelector = function (_PIXI$Graphics) {
         var _this = possibleConstructorReturn(this, (GUICardSelector.__proto__ || Object.getPrototypeOf(GUICardSelector)).call(this));
 
         var WIDTH = 20;
-        var HEIGHT = WIDTH * 2;
-        _this.clear().lineStyle(3, 0, 1).moveTo(WIDTH / 2, 0).lineTo(WIDTH, HEIGHT).lineTo(0, HEIGHT).lineTo(WIDTH / 2, 0);
+        var HEIGHT = WIDTH;
+        _this.clear().lineStyle(3, 0, 1).moveTo(WIDTH / 2, 0).beginFill(0xffffff, 1).lineTo(WIDTH, HEIGHT).lineTo(0, HEIGHT).lineTo(WIDTH / 2, 0).endFill();
         _this.pivot.set(WIDTH / 2, 0);
         _this.originalY = y;
         if (x) _this.x = x;
@@ -1118,7 +1196,8 @@ var GUICardSelector = function (_PIXI$Graphics) {
     createClass(GUICardSelector, [{
         key: 'setCursorCardIndex',
         value: function setCursorCardIndex(game, index) {
-            if (index < 0 || index > 4) return;
+            if (index < 0) index = 4;
+            if (index > 4) index = 0;
             this.index = index;
             var p = game.player.getChildPosition(index);
             this.x = p.x + CardsGenerator.CARD_WIDTH / 2;
@@ -1138,9 +1217,21 @@ var GUICardSelector = function (_PIXI$Graphics) {
             } else if (Keyboard.isKeyPushed(Keyboard.RIGHT_ARROW)) {
                 this.setCursorCardIndex(game, this.index + 1);
             } else if (Keyboard.isKeyPushed(Keyboard.UP_ARROW)) {
-                game.player.setSelectedCardIndex(this.index, true);
+                if (Keyboard.isKeyDown(Keyboard.SHIFT)) {
+                    for (var i = 0; i < 5; i++) {
+                        game.player.setSelectedCardIndex(i, true);
+                    }
+                } else {
+                    game.player.setSelectedCardIndex(this.index, true);
+                }
             } else if (Keyboard.isKeyPushed(Keyboard.DOWN_ARROW)) {
-                game.player.setSelectedCardIndex(this.index, false);
+                if (Keyboard.isKeyDown(Keyboard.SHIFT)) {
+                    for (var _i = 0; _i < 5; _i++) {
+                        game.player.setSelectedCardIndex(_i, false);
+                    }
+                } else {
+                    game.player.setSelectedCardIndex(this.index, false);
+                }
             } else if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
                 this.destroy();
             }
@@ -1148,6 +1239,131 @@ var GUICardSelector = function (_PIXI$Graphics) {
     }]);
     return GUICardSelector;
 }(PIXI$1.Graphics);
+
+var Timer = function () {
+    function Timer(targetedTime) {
+        var ticker = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : PIXI$1.ticker.shared;
+        classCallCheck(this, Timer);
+
+        this.target = targetedTime;
+        this.time = 0;
+        this.ticker = ticker;
+        this.isStarted = false;
+    }
+
+    createClass(Timer, [{
+        key: 'destroy',
+        value: function destroy() {
+            this.stop();
+            this.ticker = null;
+        }
+    }, {
+        key: 'set',
+        value: function set(targetedTime) {
+            this.target = targetedTime || 0;
+            this.time = 0;
+        }
+    }, {
+        key: 'reset',
+        value: function reset() {
+            this.time = 0;
+        }
+    }, {
+        key: 'start',
+        value: function start() {
+            if (!this.isStarted) {
+                this.ticker.add(this.tick, this);
+                this.isStarted = true;
+            }
+        }
+    }, {
+        key: 'stop',
+        value: function stop() {
+            if (this.isStarted) {
+                this.ticker.remove(this.tick, this);
+                this.isStarted = false;
+            }
+        }
+    }, {
+        key: 'tick',
+        value: function tick() {
+            this.time += this.ticker.elapsedMS;
+        }
+    }, {
+        key: 'delta',
+        value: function delta() {
+            return this.target - this.time;
+        }
+    }]);
+    return Timer;
+}();
+
+var TransformAnimation = function () {
+    /**
+     * @param {Object} options
+     * @param {PIXI.Point} options.posFrom
+     * @param {PIXI.Point} options.posTo
+     * @param {PIXI.Point} options.pivot
+     * @param {number} options.scaleFrom
+     * @param {number} options.scaleTo
+     * @param {number} options.rotationFrom
+     * @param {number} options.rotationTo
+     * @param {number} options.timeFrom
+     * @param {number} options.duration
+     * @param {Function} options.callback
+    */
+    function TransformAnimation(options) {
+        classCallCheck(this, TransformAnimation);
+
+        this.posFrom = options.posFrom || null;
+        this.posTo = options.posTo || null;
+        this.scaleFrom = !isNaN(options.scaleFrom) ? +options.scaleFrom : 1;
+        this.scaleTo = !isNaN(options.scaleTo) ? +options.scaleTo : 1;
+        this.rotationFrom = !isNaN(options.rotationFrom) ? +options.rotationFrom : 0;
+        this.rotationTo = !isNaN(options.rotationTo) ? +options.rotationTo : 0;
+        this.pivot = options.pivot || new PIXI.Point(0, 0);
+
+        this.timer = new Timer(options.duration);
+        this.duration = options.duration;
+        this.callback = options.callback || function () {};
+        this.interpolator = options.interpolator || bezier(0, 0, 1, 1);
+    }
+
+    /**
+     * Destroy all references presents in the animation
+     */
+
+
+    createClass(TransformAnimation, [{
+        key: 'destroy',
+        value: function destroy() {
+            this.timer.stop();
+            this.timer = null;
+            this.posFrom = this.posTo = this.pivot = null;
+            this.callback = null;
+            this.interpolator = null;
+        }
+
+        /**
+         * Update object position relative to 
+         */
+
+    }, {
+        key: 'update',
+        value: function update(sprite) {
+            if (!this.timer.isStarted) this.timer.start();
+            var rawRatio = Math.min(this.duration, this.timer.time) / this.duration;
+
+            var ratio = Math.max(0, Math.min(1, this.interpolator(rawRatio)));
+            sprite.setTransform(this.posFrom && this.posTo ? this.posFrom.x + (this.posTo.x - this.posFrom.x) * ratio : sprite.x, this.posFrom && this.posTo ? this.posFrom.y + (this.posTo.y - this.posFrom.y) * ratio : sprite.y, this.scaleFrom + (this.scaleTo - this.scaleFrom) * ratio, this.scaleFrom + (this.scaleTo - this.scaleFrom) * ratio, this.rotationFrom + (this.rotationTo - this.rotationFrom) * ratio, 0, 0, this.pivot.x, this.pivot.y);
+
+            if (rawRatio == 1) {
+                this.callback(sprite);
+            }
+        }
+    }]);
+    return TransformAnimation;
+}();
 
 var GUIText = function (_PIXI$Text) {
     inherits(GUIText, _PIXI$Text);
@@ -1162,8 +1378,27 @@ var GUIText = function (_PIXI$Text) {
     }
 
     createClass(GUIText, [{
+        key: 'destroy',
+        value: function destroy() {
+            this.setAnimation(null);
+            get(GUIText.prototype.__proto__ || Object.getPrototypeOf(GUIText.prototype), 'destroy', this).call(this);
+        }
+
+        /**
+         * @param {TransformAnimation} animation
+         */
+
+    }, {
+        key: 'setAnimation',
+        value: function setAnimation(animation) {
+            if (this.animation) this.animation.destroy();
+            this.animation = animation;
+        }
+    }, {
         key: 'update',
-        value: function update() {}
+        value: function update() {
+            if (this.animation) this.animation.update(this);
+        }
     }]);
     return GUIText;
 }(PIXI$1.Text);
@@ -1188,6 +1423,34 @@ var Tracker = {
         mixpanel.track(eventName, properties, callback);
     }
 };
+
+var GUISuitName = function (_GUIText) {
+    inherits(GUISuitName, _GUIText);
+
+    /**
+     * @param {String} text
+     */
+    function GUISuitName(options) {
+        classCallCheck(this, GUISuitName);
+
+        var _this = possibleConstructorReturn(this, (GUISuitName.__proto__ || Object.getPrototypeOf(GUISuitName)).call(this, options.text, BigText.textConfig));
+
+        _this.x = options.game.renderer.width + _this.width / 2 + 1;
+        _this.y = options.game.renderer.height / 3 - _this.height / 2;
+        _this.setAnimation(new TransformAnimation({
+            posFrom: new PIXI$1.Point(_this.x, _this.y),
+            posTo: new PIXI$1.Point(options.game.renderer.width / 2 - _this.width / 2, _this.y),
+            duration: 400,
+            interpolator: bezier(.26, .58, .63, .97),
+            callback: function callback() {
+                _this.setAnimation(null);
+            }
+        }));
+        return _this;
+    }
+
+    return GUISuitName;
+}(GUIText);
 
 var ticker = PIXI.ticker.shared; //new PIXI.ticker.Ticker();
 
@@ -1241,16 +1504,16 @@ var Game = function () {
         key: 'clearGame',
         value: function clearGame() {
             this.stop();
+            if (this.cards) this.cards.destroy();
             this.cards = null;
             this.player = null;
-            this.fg.removeChildren();
-            this.gui.removeChildren();
+            this.fg.destroyChildren();
+            this.gui.destroyChildren();
         }
     }, {
         key: 'newGame',
         value: function newGame() {
-            this.gameState = Game.GAME_IDLE;
-            this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
+            this.gameState = Game.GAME_PLAYING;
 
             var stageWidth = this.renderer.width;
             var stageHeight = this.renderer.height;
@@ -1264,7 +1527,8 @@ var Game = function () {
     }, {
         key: 'clearBoard',
         value: function clearBoard() {
-            this.player.removeChildren();
+            this.player.destroyChildren();
+            if (this.cards) this.cards.destroy();
             this.cards = CardsGenerator.generateCards().shuffle();
         }
     }, {
@@ -1299,7 +1563,7 @@ var Game = function () {
         key: 'displayCardCursorSelection',
         value: function displayCardCursorSelection() {
             var p = this.player.getChildPosition(0);
-            this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 10));
+            this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25));
         }
     }, {
         key: 'setState',
@@ -1313,7 +1577,7 @@ var Game = function () {
             switch (state) {
                 case Game.STATE_PLAYING_CHOOSE_CARDS:
                     Tracker.track('game:new');
-                    this.gui.removeChildren();
+                    this.gui.destroyChildren();
                     this.clearBoard();
                     this.distribute(5);
                     this.displayCardCursorSelection();
@@ -1328,8 +1592,10 @@ var Game = function () {
                         type: combo.getTypeName(),
                         cards: combo.getCards().map(String)
                     });
-                    var score = new GUIText(combo.getTypeName(), { fontSize: 36 });
-                    this.gui.addChild(score);
+                    this.gui.addChild(new GUISuitName({
+                        text: combo.getTypeName(),
+                        game: this
+                    }));
 
                     break;
                 case Game.STATE_PLAYING_CHOOSE_RISK:

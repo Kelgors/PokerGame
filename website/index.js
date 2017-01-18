@@ -14,5 +14,5 @@ setTimeout(function () {
     game.distribute();
     
     game.start();
-}, 1000);
+}, 200);
 

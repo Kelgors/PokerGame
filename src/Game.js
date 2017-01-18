@@ -8,6 +8,7 @@ import GUICardSelector from './gui/GUICardSelector';
 import Keyboard from './lib/Keyboard';
 import GUIText from './lib/GUIText';
 import Tracker from './Tracker';
+import GUISuitName from './gui/GUISuitName';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 
@@ -57,15 +58,15 @@ export default class Game {
 
     clearGame() {
         this.stop();
+        if (this.cards) this.cards.destroy();
         this.cards = null;
         this.player = null;
-        this.fg.removeChildren();
-        this.gui.removeChildren();
+        this.fg.destroyChildren();
+        this.gui.destroyChildren();
     }
 
     newGame() {
-        this.gameState = Game.GAME_IDLE;
-        this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
+        this.gameState = Game.GAME_PLAYING;
 
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
@@ -79,7 +80,8 @@ export default class Game {
     }
 
     clearBoard() {
-        this.player.removeChildren();
+        this.player.destroyChildren();
+        if (this.cards) this.cards.destroy();
         this.cards = CardsGenerator.generateCards().shuffle();
     }
 
@@ -112,7 +114,7 @@ export default class Game {
 
     displayCardCursorSelection() {
         const p = this.player.getChildPosition(0);
-        this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 10));
+        this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25));
     }
 
     setState(state) {
@@ -124,7 +126,7 @@ export default class Game {
         switch (state) {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
                 Tracker.track('game:new');
-                this.gui.removeChildren();
+                this.gui.destroyChildren();
                 this.clearBoard();
                 this.distribute(5);
                 this.displayCardCursorSelection();
@@ -139,8 +141,10 @@ export default class Game {
                     type: combo.getTypeName(),
                     cards: combo.getCards().map(String)
                 });
-                const score = new GUIText(combo.getTypeName(), { fontSize: 36 });
-                this.gui.addChild(score);
+                this.gui.addChild(new GUISuitName({
+                    text: combo.getTypeName(),
+                    game: this
+                }));
                 
                 break;
             case Game.STATE_PLAYING_CHOOSE_RISK:

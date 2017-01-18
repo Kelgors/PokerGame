@@ -4,7 +4,7 @@ import './gulp/build-sass';
 import './gulp/http';
 
 gulp.task('watch:js', function () {
-  gulp.watch('./src/**/*.js', [ 'build:js' ]);
+  gulp.watch('./src/**/*.js', [ 'build:js:src' ]);
 });
 gulp.task('watch:css', function () {
   gulp.watch('./src/styles/**/*.sass', [ 'build:sass' ]);
