@@ -7,6 +7,9 @@ var game = new PokerGame.Game({
     height: container.offsetHeight
 });
 
+document.getElementById('timestamp').textContent = PokerGame.Game.BUILD_TIME;
+document.getElementById('version-name').textContent = PokerGame.Game.VERSION;
+
 setTimeout(function () {
     game.stop();
     game.clearGame();
@@ -14,5 +17,13 @@ setTimeout(function () {
     game.distribute();
     
     game.start();
+
+    window.addEventListener('focus', function () {
+        game.start();
+    });
+
+    window.addEventListener('blur', function () {
+        game.stop();
+    });
 }, 200);
 

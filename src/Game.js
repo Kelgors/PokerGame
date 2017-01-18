@@ -1,6 +1,5 @@
 import UpdatableContainer from './containers/UpdatableContainer';
 import CardsGenerator from './CardsGenerator';
-import PlayerArea from './PlayerArea';
 import {CardComboList} from './CardComboList';
 import LinearLayout from './gui/LinearLayout';
 import GUICombosList from './gui/debug/GUICombosList';
@@ -8,7 +7,13 @@ import GUICardSelector from './gui/GUICardSelector';
 import Keyboard from './lib/Keyboard';
 import GUIText from './lib/GUIText';
 import Tracker from './Tracker';
-import GUISuitName from './gui/GUISuitName';
+
+import GUIScoreLayout from './gui/GUIScoreLayout';
+
+import CardCollection from './CardCollection';
+
+import AbsCardArea from './containers/AbsCardArea';
+import CardRiverArea from './containers/CardRiverArea';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 
@@ -16,8 +21,10 @@ export default class Game {
 
     constructor(options) {
         this._frame = 0;
+        /** @type {CardCollection} */
         this.cards = null;
-        this.player = null;
+        /** @type {AbsCardArea} */
+        this.river = null;
 
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
@@ -38,6 +45,7 @@ export default class Game {
             roundPixels: options.roundPixels || true
         }; 
         this.renderer = PIXI.autoDetectRenderer(options.width || 800, options.height || 600, rendererOptions, false);
+        /** @type {HTMLElement} */
         this.container = null;
         if (options.container) {
             this.container = options.container;
@@ -70,17 +78,15 @@ export default class Game {
 
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
-        this.player = new PlayerArea(stageWidth/2, stageHeight/3*2);
-
-        this.fg.addChild(this.player);
-        //this.gui.addChild(new GUICombosList()); 
+        this.river = new CardRiverArea(stageWidth/2, stageHeight/3*2);
+        this.fg.addChild(this.river);
         this.clearBoard();
         this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
           
     }
 
     clearBoard() {
-        this.player.destroyChildren();
+        this.river.destroyChildren();
         if (this.cards) this.cards.destroy();
         this.cards = CardsGenerator.generateCards().shuffle();
     }
@@ -90,30 +96,30 @@ export default class Game {
         // const forcedCards = 0;
         // [ 3, 2, 1, 0, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
         //     const card = this.cards.getByValue(value);
-        //     this.player.addChild(card);
+        //     this.river.addChild(card);
         //     this.cards.remove(card);
         // }, this);
         // // for (let i = 0; i < forcedCards; i++) {
         // //     let card = this.cards.getByValue(2);
         // //     if (i > 3) card = this.cards.getByValue(4);
-        // //     this.player.addChild(card)
+        // //     this.river.addChild(card)
         // //     this.cards.remove(card);
         // // }
         // // for (let i = 0; i < forcedCards; i++) {
         // //     let card = this.cards.getByValue(i + 1);
-        // //     this.player.addChild(card)
+        // //     this.river.addChild(card)
         // //     this.cards.remove(card);
         // // }
 
         for (let index = 0; index < count; index++) {
             let card = this.cards.peek();
-            this.player.addChild(card);
+            this.river.addCard(card);
             this.cards.remove(card);
         }
     }
 
     displayCardCursorSelection() {
-        const p = this.player.getChildPosition(0);
+        const p = this.river.getCardAt(0);
         this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25));
     }
 
@@ -134,15 +140,15 @@ export default class Game {
             case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
                 this.commitChanges();
                 const combo = this.getCardComboList().getHigherCombo();
-                combo.cards.toArray().forEach(function (d) {
+                combo.getCards().forEach(function (d) {
                     d.highlight();
                 });
                 Tracker.track('combo', {
                     type: combo.getTypeName(),
                     cards: combo.getCards().map(String)
                 });
-                this.gui.addChild(new GUISuitName({
-                    text: combo.getTypeName(),
+                this.gui.addChild(new GUIScoreLayout({
+                    playerCombo: combo,
                     game: this
                 }));
                 
@@ -199,6 +205,7 @@ export default class Game {
     loop(time) {
         this._frame += 1;
 
+        this.fg.update(this);
         this.gui.update(this);
 
         if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
@@ -206,7 +213,8 @@ export default class Game {
                 this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
             }
         } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-            if (Keyboard.isKeyPushed(Keyboard.SPACE) || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+            let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);  
+            if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
                 this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
             }
         }
@@ -216,13 +224,16 @@ export default class Game {
     }
 
     getCardComboList() {
-        return new CardComboList(this.player.getCards());
+        return new CardComboList(this.river.getCards());
     }
 
     commitChanges() {
-        const cards = game.player.selectedCardsToBeChanged.splice(0, game.player.selectedCardsToBeChanged.length);
+        const cards = this.river.selectedCardsToBeChanged.splice(0, this.river.selectedCardsToBeChanged.length);
         const cardsLen = cards.length;
-        cards.forEach(function (c) { c.destroy(); });
+        for (let index = 0; index < cardsLen; index++) {
+            this.river.removeCard(cards[index]);
+            cards[index].destroy(); 
+        }
         this.distribute(cardsLen);
     }
 

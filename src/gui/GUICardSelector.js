@@ -25,11 +25,13 @@ export default class GUICardSelector extends PIXI.Graphics {
     }
 
     setCursorCardIndex(game, index) {
+        const river = game.river;
         if (index < 0) index = 4;
-        if (index > 4) index = 0;
+        if (index > river.cardSlots - 1) index = 0;
         this.index = index;
-        const p = game.player.getChildPosition(index);
+        const p = game.river.getCardPositionAt(index);
         this.x = p.x + CardsGenerator.CARD_WIDTH / 2;
+        this.y = p.y + CardsGenerator.CARD_HEIGHT + 20;
     }
 
     /**
@@ -44,15 +46,15 @@ export default class GUICardSelector extends PIXI.Graphics {
             this.setCursorCardIndex(game, this.index + 1);    
         } else if (Keyboard.isKeyPushed(Keyboard.UP_ARROW)) {
             if (Keyboard.isKeyDown(Keyboard.SHIFT)) {
-                for (let i=0;i<5;i++) game.player.setSelectedCardIndex(i, true);
+                for (let i=0;i<5;i++) game.river.setSelectedCardIndex(i, true);
             } else {
-                game.player.setSelectedCardIndex(this.index, true);
+                game.river.setSelectedCardIndex(this.index, true);
             }
         } else if (Keyboard.isKeyPushed(Keyboard.DOWN_ARROW)) {
             if (Keyboard.isKeyDown(Keyboard.SHIFT)) {
-                for (let i=0;i<5;i++) game.player.setSelectedCardIndex(i, false);
+                for (let i=0;i<5;i++) game.river.setSelectedCardIndex(i, false);
             } else {
-                game.player.setSelectedCardIndex(this.index, false);
+                game.river.setSelectedCardIndex(this.index, false);
             }
             
         } else if (Keyboard.isKeyPushed(Keyboard.ENTER)) {

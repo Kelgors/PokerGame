@@ -6,6 +6,16 @@ html, body {
     margin: 0;
     background: green;
 }
+
+body > footer {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    color: white;
+    font-family: Tahoma;
+    font-size: 10px;
+}
+
 #viewport {
     overflow: hidden;
     position: relative;

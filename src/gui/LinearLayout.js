@@ -2,6 +2,13 @@ import PIXI from 'pixi.js';
 import UpdatableContainer from '../containers/UpdatableContainer';
 
 export default class LinearLayout extends UpdatableContainer {
+
+    /**
+     * @param {Object} [options]
+     * @property {number} x
+     * @property {number} y
+     * @property {number} childMargin
+     */
     constructor(options = {}) {
         super();
         this.childMargin = 0;
@@ -22,8 +29,19 @@ export default class LinearLayout extends UpdatableContainer {
         }
     }
 
-    getChildPosition(childIndex) {
-        const child = this.getChildAt(childIndex);
+    /**
+     * @param {number} childIndex
+     * @returns {PIXI.Point}
+     */
+    getChildPositionAt(childIndex) {
+        return this.getChildPosition(this.getChildAt(childIndex));
+    }
+
+    /**
+     * @param {PIXI.DisplayObject} child
+     * @returns {PIXI.Point}
+     */
+    getChildPosition(child) {
         return new PIXI.Point(this.x - this.pivot.x + child.x - child.pivot.x, this.y - this.pivot.y + child.y - child.pivot.y);
     }
 

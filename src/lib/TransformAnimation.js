@@ -22,6 +22,8 @@ export default class TransformAnimation {
         this.scaleTo = !isNaN(options.scaleTo) ? +options.scaleTo : 1;
         this.rotationFrom = !isNaN(options.rotationFrom) ? +options.rotationFrom : 0;
         this.rotationTo = !isNaN(options.rotationTo) ? +options.rotationTo : 0;
+        this.alphaFrom = !isNaN(options.alphaFrom) ? +options.alphaFrom : 1;
+        this.alphaTo = !isNaN(options.alphaTo) ? +options.alphaTo : 1;
         this.pivot = options.pivot || new PIXI.Point(0,0);
 
         this.timer = new Timer(options.duration);
@@ -60,6 +62,7 @@ export default class TransformAnimation {
             this.pivot.x,
             this.pivot.y
         );
+        sprite.alpha = this.alphaFrom + (this.alphaTo - this.alphaFrom) * ratio; 
 
         if (rawRatio == 1) {
             this.callback(sprite);
