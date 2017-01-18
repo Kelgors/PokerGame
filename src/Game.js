@@ -1,8 +1,13 @@
+import UpdatableContainer from './containers/UpdatableContainer';
 import CardsGenerator from './CardsGenerator';
 import PlayerArea from './PlayerArea';
 import {CardComboList} from './CardComboList';
 import LinearLayout from './gui/LinearLayout';
 import GUICombosList from './gui/debug/GUICombosList';
+import GUICardSelector from './gui/GUICardSelector';
+import Keyboard from './lib/Keyboard';
+import GUIText from './lib/GUIText';
+import Tracker from './Tracker';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 
@@ -16,8 +21,8 @@ export default class Game {
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
 
-        this.fg = new PIXI.Container();
-        this.gui = new LinearLayout();
+        this.fg = new UpdatableContainer();
+        this.gui = new UpdatableContainer();
         this.renderingContainer = new PIXI.Container();
         this.renderingContainer.addChild(this.fg);
         this.renderingContainer.addChild(this.gui);
@@ -67,41 +72,47 @@ export default class Game {
         this.player = new PlayerArea(stageWidth/2, stageHeight/3*2);
 
         this.fg.addChild(this.player);
-        this.gui.addChild(new GUICombosList()); 
+        //this.gui.addChild(new GUICombosList()); 
+        this.clearBoard();
+        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
           
     }
 
-    distribute() {
+    clearBoard() {
         this.player.removeChildren();
         this.cards = CardsGenerator.generateCards().shuffle();
-        const forcedCards = 5;
+    }
+
+    distribute(count) {
         
-        [ 0, 1, 2, 2, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
-            const card = this.cards.getByValue(value);
-            this.player.addChild(card);
-            this.cards.remove(card);
-        }, this);
-
-        // for (let i = 0; i < forcedCards; i++) {
-        //     let card = this.cards.getByValue(2);
-        //     if (i > 3) card = this.cards.getByValue(4);
-        //     this.player.addChild(card)
+        // const forcedCards = 0;
+        // [ 3, 2, 1, 0, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
+        //     const card = this.cards.getByValue(value);
+        //     this.player.addChild(card);
         //     this.cards.remove(card);
-        // }
+        // }, this);
+        // // for (let i = 0; i < forcedCards; i++) {
+        // //     let card = this.cards.getByValue(2);
+        // //     if (i > 3) card = this.cards.getByValue(4);
+        // //     this.player.addChild(card)
+        // //     this.cards.remove(card);
+        // // }
+        // // for (let i = 0; i < forcedCards; i++) {
+        // //     let card = this.cards.getByValue(i + 1);
+        // //     this.player.addChild(card)
+        // //     this.cards.remove(card);
+        // // }
 
-        // for (let i = 0; i < forcedCards; i++) {
-        //     let card = this.cards.getByValue(i + 1);
-        //     this.player.addChild(card)
-        //     this.cards.remove(card);
-        // }
-
-
-
-        for (let index = 0; index < 5 - forcedCards; index++) {
-            let card = this.cards.peek()
+        for (let index = 0; index < count; index++) {
+            let card = this.cards.peek();
             this.player.addChild(card);
             this.cards.remove(card);
         }
+    }
+
+    displayCardCursorSelection() {
+        const p = this.player.getChildPosition(0);
+        this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 10));
     }
 
     setState(state) {
@@ -110,6 +121,32 @@ export default class Game {
 
     setPlayingState(state) {
         this.playingGameState = state;
+        switch (state) {
+            case Game.STATE_PLAYING_CHOOSE_CARDS:
+                Tracker.track('game:new');
+                this.gui.removeChildren();
+                this.clearBoard();
+                this.distribute(5);
+                this.displayCardCursorSelection();
+                break;
+            case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
+                this.commitChanges();
+                const combo = this.getCardComboList().getHigherCombo();
+                combo.cards.toArray().forEach(function (d) {
+                    d.highlight();
+                });
+                Tracker.track('combo', {
+                    type: combo.getTypeName(),
+                    cards: combo.getCards().map(String)
+                });
+                const score = new GUIText(combo.getTypeName(), { fontSize: 36 });
+                this.gui.addChild(score);
+                
+                break;
+            case Game.STATE_PLAYING_CHOOSE_RISK:
+                break;
+            
+        }
     }
 
     getFPS() {
@@ -157,15 +194,32 @@ export default class Game {
 
     loop(time) {
         this._frame += 1;
+
         this.gui.update(this);
-        this.renderer.render(this.renderingContainer);
-        if (this._frame % 10 === 0) {
-            
+
+        if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
+            if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
+            }
+        } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
+            if (Keyboard.isKeyPushed(Keyboard.SPACE) || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+            }
         }
+
+        this.renderer.render(this.renderingContainer);
+        Keyboard.update();
     }
 
     getCardComboList() {
         return new CardComboList(this.player.getCards());
+    }
+
+    commitChanges() {
+        const cards = game.player.selectedCardsToBeChanged.splice(0, game.player.selectedCardsToBeChanged.length);
+        const cardsLen = cards.length;
+        cards.forEach(function (c) { c.destroy(); });
+        this.distribute(cardsLen);
     }
 
 
@@ -192,5 +246,9 @@ Game.STATE_GAMEOVER = 4;
 
 Game.STATE_PLAYING_CHOOSE_BET = 1;
 Game.STATE_PLAYING_CHOOSE_CARDS = 2;
-Game.STATE_PLAYING_CHOOSE_DOUBLE_DOWN = 4;
-Game.STATE_PLAYING_DISPLAY_DOUBLE_DOWN = 8;
+Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 4;
+Game.STATE_PLAYING_DISPLAY_RIVER_SCORE = 8;
+Game.STATE_PLAYING_CHOOSE_RISK = 16;
+Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 32;
+Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 64;
+

@@ -13,6 +13,6 @@ setTimeout(function () {
     game.newGame();    
     game.distribute();
     
-    game.loop(1);
+    game.start();
 }, 1000);
 

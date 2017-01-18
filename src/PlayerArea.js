@@ -1,34 +1,39 @@
 import CardsGenerator from './CardsGenerator';
 import CardCollection from './CardCollection';
+import LinearLayout from './gui/LinearLayout';
 
-export default class PlayerArea extends PIXI.Container {
+export default class PlayerArea extends LinearLayout {
     constructor(x, y) {
-        super();
-        this.x = x;
-        this.y = y;
+        super({ 
+            x, y, 
+            orientation: LinearLayout.ORIENTATION_HORIZONTAL,
+            childMargin: 17
+        });
+
+        this.selectedCardsToBeChanged = [];
     }
 
     addChild(...card) {
         const out = super.addChild(...card);
-        this.updateCardPositions();
+        this.updateChildrenPosition();
+        this.pivot.set(this.width/2, this.height/2);
         return out;
     }
 
-    updateCardPositions() {
-        const cardLen = this.children.length;
-        if (cardLen === 0) return;
-        const cardWidth = CardsGenerator.CARD_WIDTH;
-        const paddingHorizontal = 10;
-        for (let index = 0; index < cardLen; index++) {
-            const card = this.getChildAt(index);
-            card.x = index * cardWidth + index * paddingHorizontal;
-            card.y = 0;
-        }
-        this.pivot.set(this.width/2, this.height/2);
-    }
+    update(game) {}
 
     getCards() {
         return new CardCollection(this.children.slice(0));
+    }
+
+    setSelectedCardIndex(index, swt) {
+        const card = this.getChildAt(index);
+        const indexOfCard = this.selectedCardsToBeChanged.indexOf(card)
+        const isSelected = indexOfCard > -1;
+        if (isSelected && swt || !isSelected && !swt) return; 
+        if (swt) this.selectedCardsToBeChanged.push(card);
+        else this.selectedCardsToBeChanged.splice(indexOfCard, 1);
+        card.y += swt ? -20 : 20;
     }
     
 }

@@ -143,6 +143,97 @@ var toConsumableArray = function (arr) {
   }
 };
 
+var UpdatableContainer = function (_PIXI$Container) {
+    inherits(UpdatableContainer, _PIXI$Container);
+
+    function UpdatableContainer() {
+        classCallCheck(this, UpdatableContainer);
+        return possibleConstructorReturn(this, (UpdatableContainer.__proto__ || Object.getPrototypeOf(UpdatableContainer)).apply(this, arguments));
+    }
+
+    createClass(UpdatableContainer, [{
+        key: "update",
+        value: function update(game) {
+            this.updateChildren(game);
+        }
+    }, {
+        key: "updateChildren",
+        value: function updateChildren(game) {
+            this.children.forEach(function (child) {
+                child.update(game);
+            });
+        }
+    }]);
+    return UpdatableContainer;
+}(PIXI.Container);
+
+/**
+ * https://github.com/gre/bezier-easing
+ * BezierEasing - use bezier curve for transition easing function
+ * by Gaëtan Renaudeau 2014 - 2015 – MIT License
+ */
+
+// These values are established by empiricism with tests (tradeoff: performance VS precision)
+var NEWTON_ITERATIONS = 4;
+var NEWTON_MIN_SLOPE = 0.001;
+var SUBDIVISION_PRECISION = 0.0000001;
+var SUBDIVISION_MAX_ITERATIONS = 10;
+
+var kSplineTableSize = 11;
+var kSampleStepSize = 1.0 / (kSplineTableSize - 1.0);
+
+var float32ArraySupported = typeof Float32Array === 'function';
+
+function A(aA1, aA2) {
+    return 1.0 - 3.0 * aA2 + 3.0 * aA1;
+}
+
+function B(aA1, aA2) {
+    return 3.0 * aA2 - 6.0 * aA1;
+}
+
+function C(aA1) {
+    return 3.0 * aA1;
+}
+
+// Returns x(t) given t, x1, and x2, or y(t) given t, y1, and y2.
+function calcBezier(aT, aA1, aA2) {
+    return ((A(aA1, aA2) * aT + B(aA1, aA2)) * aT + C(aA1)) * aT;
+}
+
+// Returns dx/dt given t, x1, and x2, or dy/dt given t, y1, and y2.
+function getSlope(aT, aA1, aA2) {
+    return 3.0 * A(aA1, aA2) * aT * aT + 2.0 * B(aA1, aA2) * aT + C(aA1);
+}
+
+function binarySubdivide(aX, aA, aB, mX1, mX2) {
+    var currentX,
+        currentT,
+        i = 0;
+    do {
+        currentT = aA + (aB - aA) / 2.0;
+        currentX = calcBezier(currentT, mX1, mX2) - aX;
+        if (currentX > 0.0) {
+            aB = currentT;
+        } else {
+            aA = currentT;
+        }
+    } while (Math.abs(currentX) > SUBDIVISION_PRECISION && ++i < SUBDIVISION_MAX_ITERATIONS);
+    return currentT;
+}
+
+function newtonRaphsonIterate(aX, aGuessT, mX1, mX2) {
+    for (var i = 0; i < NEWTON_ITERATIONS; ++i) {
+        var currentSlope = getSlope(aGuessT, mX1, mX2);
+        if (currentSlope === 0.0) {
+            return aGuessT;
+        }
+        var currentX = calcBezier(aGuessT, mX1, mX2) - aX;
+        aGuessT -= currentX / currentSlope;
+    }
+    return aGuessT;
+}
+
 var Card = function (_PIXI$Graphics) {
   inherits(Card, _PIXI$Graphics);
 
@@ -156,20 +247,49 @@ var Card = function (_PIXI$Graphics) {
 
     var width = options.width;
     var height = options.height;
-    _this.lineStyle(1, 0x000000, 1).beginFill(0xFFFFFF, 1).drawRoundedRect(0, 0, width, height, width / 10).endFill();
-    _this.text = new PIXI$1.Text(_this.toString().split(' of ').join('\nof '), {
+    _this.originalWidth = options.width;
+    _this.originalHeight = options.height;
+    _this.drawBackground();
+    var valueText = new PIXI$1.Text(_this.getValue(), {
+      fontSize: 26,
+      textColor: 0,
+      align: 'center'
+    });
+    var suitText = new PIXI$1.Text(_this.getSuit(), {
       fontSize: 14,
       textColor: 0,
       align: 'center'
     });
-    _this.text.x = width / 2;
-    _this.text.y = height / 2;
-    _this.text.anchor.set(0.5, 0.5);
-    _this.addChild(_this.text);
+    _this.isHighlighted = false;
+    valueText.x = width / 2;
+    valueText.y = 30;
+    valueText.anchor.set(0.5, 0.5);
+    suitText.x = width / 2;
+    suitText.y = height / 2;
+    suitText.anchor.set(0.5, 0.5);
+    _this.addChild(valueText);
+    _this.addChild(suitText);
     return _this;
   }
 
   createClass(Card, [{
+    key: 'drawBackground',
+    value: function drawBackground() {
+      var shadowSteps = 10;
+      this.clear().lineStyle(1, 0x000000, 1).beginFill(this.suit === 1 || this.suit === 2 ? 0xFF0000 : 0, 0.5).drawRoundedRect(0, 0, this.originalWidth, this.originalHeight, this.originalWidth / 10).endFill();
+      if (this.isHighlighted) {
+        for (var i = 1; i < shadowSteps; i++) {
+          this.lineStyle(1, 0xffff00, 0.8 - i / shadowSteps).drawRoundedRect(-i, -i, this.originalWidth + i * 2, this.originalHeight + i * 2, this.originalWidth / 10);
+        }
+      }
+    }
+  }, {
+    key: 'highlight',
+    value: function highlight() {
+      this.isHighlighted = true;
+      this.drawBackground();
+    }
+  }, {
     key: 'isJoker',
     value: function isJoker() {
       return this.value === CardsGenerator.JOKER_VALUE;
@@ -370,16 +490,76 @@ var CardsGenerator = {
     }
 };
 
-var PlayerArea = function (_PIXI$Container) {
-    inherits(PlayerArea, _PIXI$Container);
+var LinearLayout = function (_UpdatableContainer) {
+    inherits(LinearLayout, _UpdatableContainer);
+
+    function LinearLayout() {
+        var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+        classCallCheck(this, LinearLayout);
+
+        var _this = possibleConstructorReturn(this, (LinearLayout.__proto__ || Object.getPrototypeOf(LinearLayout)).call(this));
+
+        _this.childMargin = 0;
+        if ('x' in options) _this.x = options.x;
+        if ('y' in options) _this.y = options.y;
+        if ('childMargin' in options) _this.childMargin = options.childMargin;
+        _this.setOrientation(options.orientation || LinearLayout.ORIENTATION_VERTICAL);
+        return _this;
+    }
+
+    createClass(LinearLayout, [{
+        key: 'setOrientation',
+        value: function setOrientation(orientation) {
+            this._orientation = orientation;
+            if (orientation === LinearLayout.ORIENTATION_VERTICAL) {
+                this._posPropertyName = 'y';
+                this._sizePropertyName = 'height';
+            } else if (orientation === LinearLayout.ORIENTATION_HORIZONTAL) {
+                this._posPropertyName = 'x';
+                this._sizePropertyName = 'width';
+            }
+        }
+    }, {
+        key: 'getChildPosition',
+        value: function getChildPosition(childIndex) {
+            var child = this.getChildAt(childIndex);
+            return new PIXI$1.Point(this.x - this.pivot.x + child.x - child.pivot.x, this.y - this.pivot.y + child.y - child.pivot.y);
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            get(LinearLayout.prototype.__proto__ || Object.getPrototypeOf(LinearLayout.prototype), 'update', this).call(this, game);
+            this.updateChildrenPosition();
+        }
+    }, {
+        key: 'updateChildrenPosition',
+        value: function updateChildrenPosition() {
+            var pos = 0;
+            for (var index = 0; index < this.children.length; index++) {
+                this.children[index][this._posPropertyName] = pos;
+                pos += this.children[index][this._sizePropertyName] + this.childMargin;
+            }
+        }
+    }]);
+    return LinearLayout;
+}(UpdatableContainer);
+
+LinearLayout.ORIENTATION_VERTICAL = 1;
+LinearLayout.ORIENTATION_HORIZONTAL = 2;
+
+var PlayerArea = function (_LinearLayout) {
+    inherits(PlayerArea, _LinearLayout);
 
     function PlayerArea(x, y) {
         classCallCheck(this, PlayerArea);
 
-        var _this = possibleConstructorReturn(this, (PlayerArea.__proto__ || Object.getPrototypeOf(PlayerArea)).call(this));
+        var _this = possibleConstructorReturn(this, (PlayerArea.__proto__ || Object.getPrototypeOf(PlayerArea)).call(this, {
+            x: x, y: y,
+            orientation: LinearLayout.ORIENTATION_HORIZONTAL,
+            childMargin: 17
+        }));
 
-        _this.x = x;
-        _this.y = y;
+        _this.selectedCardsToBeChanged = [];
         return _this;
     }
 
@@ -393,31 +573,31 @@ var PlayerArea = function (_PIXI$Container) {
             }
 
             var out = (_babelHelpers$get = get(PlayerArea.prototype.__proto__ || Object.getPrototypeOf(PlayerArea.prototype), 'addChild', this)).call.apply(_babelHelpers$get, [this].concat(card));
-            this.updateCardPositions();
+            this.updateChildrenPosition();
+            this.pivot.set(this.width / 2, this.height / 2);
             return out;
         }
     }, {
-        key: 'updateCardPositions',
-        value: function updateCardPositions() {
-            var cardLen = this.children.length;
-            if (cardLen === 0) return;
-            var cardWidth = CardsGenerator.CARD_WIDTH;
-            var paddingHorizontal = 10;
-            for (var index = 0; index < cardLen; index++) {
-                var _card = this.getChildAt(index);
-                _card.x = index * cardWidth + index * paddingHorizontal;
-                _card.y = 0;
-            }
-            this.pivot.set(this.width / 2, this.height / 2);
-        }
+        key: 'update',
+        value: function update(game) {}
     }, {
         key: 'getCards',
         value: function getCards() {
             return new CardCollection(this.children.slice(0));
         }
+    }, {
+        key: 'setSelectedCardIndex',
+        value: function setSelectedCardIndex(index, swt) {
+            var card = this.getChildAt(index);
+            var indexOfCard = this.selectedCardsToBeChanged.indexOf(card);
+            var isSelected = indexOfCard > -1;
+            if (isSelected && swt || !isSelected && !swt) return;
+            if (swt) this.selectedCardsToBeChanged.push(card);else this.selectedCardsToBeChanged.splice(indexOfCard, 1);
+            card.y += swt ? -20 : 20;
+        }
     }]);
     return PlayerArea;
-}(PIXI.Container);
+}(LinearLayout);
 
 function _identity(d) {
   return d;
@@ -564,7 +744,7 @@ var CardComboList = function () {
                 return new CardCombo({
                     type: ComboType.TwoPair,
                     cards: (_ref = []).concat.apply(_ref, toConsumableArray(pairs.map(function (d) {
-                        return d.cards;
+                        return d.cards.toArray();
                     })))
                 });
             }
@@ -587,7 +767,6 @@ var CardComboList = function () {
                         localeCards.push(cards[index]);
                     }
                 }
-                console.log(localeCards.toString());
                 if (localeCards.length > 1 && localeCards.length < 6) {
                     combos.push(new CardCombo({
                         type: comboTypeMapper[localeCards.length],
@@ -618,14 +797,18 @@ var CardComboList = function () {
     }, {
         key: '_getStraight',
         value: function _getStraight() {
-            // TODO: Joker
             var cards = this.originalCollection.toArray();
             var values = cards.map(function (d) {
                 return d.value;
-            }).sort();
-            for (var index = 1, i = values[0]; index < values.length; index++) {
-                if (i + 1 !== values[index]) return;
-                i++;
+            }).sort(Numbers.Compare.asc);
+            var jokers = cards.filter(function (d) {
+                return d.isJoker();
+            }).length;
+            for (var index = 1, value = values[0]; index < values.length; index++) {
+                var match = value + 1 === values[index];
+                if (!match && jokers === 0) return;
+                if (!match) jokers--;
+                value++;
             }
             return new CardCombo({
                 type: ComboType.Straight,
@@ -695,7 +878,7 @@ var CardComboList = function () {
     }]);
     return CardComboList;
 }();
-
+// TODO: TEST K 4 4 K J
 var CardCombo = function () {
     function CardCombo(object) {
         classCallCheck(this, CardCombo);
@@ -703,6 +886,9 @@ var CardCombo = function () {
         this.type = object.type;
         this.cards = new CardCollection();
         if (object.cards) this.cards.addAll(object.cards);else if (object.card) this.cards.add(object.card);
+        this.getCards().sort(function (a, b) {
+            return Numbers.Compare.asc(a.value, b.value);
+        });
     }
 
     createClass(CardCombo, [{
@@ -758,50 +944,6 @@ var CardCombo = function () {
     return CardCombo;
 }();
 
-var LinearLayout = function (_PIXI$Container) {
-    inherits(LinearLayout, _PIXI$Container);
-
-    function LinearLayout() {
-        var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-        classCallCheck(this, LinearLayout);
-
-        var _this = possibleConstructorReturn(this, (LinearLayout.__proto__ || Object.getPrototypeOf(LinearLayout)).call(this));
-
-        _this.setOrientation(options.orientation || LinearLayout.ORIENTATION_VERTICAL);
-        return _this;
-    }
-
-    createClass(LinearLayout, [{
-        key: 'setOrientation',
-        value: function setOrientation(orientation) {
-            this._orientation = orientation;
-            if (this.orientation === LinearLayout.ORIENTATION_VERTICAL) {
-                this._posPropertyName = 'y';
-                this._sizePropertyName = 'height';
-            } else if (this.orientation === LinearLayout.ORIENTATION_HORIZONTAL) {
-                this._posPropertyName = 'x';
-                this._sizePropertyName = 'width';
-            }
-        }
-    }, {
-        key: 'update',
-        value: function update(game) {
-            this.children.forEach(function (child) {
-                child.update(game);
-            });
-            var pos = 0;
-            for (var index = 0; index < this.children.length; index++) {
-                this.children[index][this._posPropertyName] = pos;
-                pos += this.children[index][this._sizePropertyName];
-            }
-        }
-    }]);
-    return LinearLayout;
-}(PIXI$1.Container);
-
-LinearLayout.ORIENTATION_VERTICAL = 1;
-LinearLayout.ORIENTATION_HORIZONTAL = 2;
-
 var Debug = {
     textConfig: {
         fontSize: 14,
@@ -827,6 +969,226 @@ var GUICombosList = function (_PIXI$Text) {
     return GUICombosList;
 }(PIXI$1.Text);
 
+var keyboardState = new Map();
+var lastKeyboardState = new Map();
+var Keyboard = {
+  0: 48,
+  1: 49,
+  2: 50,
+  3: 51,
+  4: 52,
+  5: 53,
+  6: 54,
+  7: 55,
+  8: 56,
+  9: 57,
+  BACKSPACE: 8,
+  TAB: 9,
+  ENTER: 13,
+  SHIFT: 16,
+  CTRL: 17,
+  ALT: 18,
+  PAUSE: 19,
+  CAPS_LOCK: 20,
+  ESCAPE: 27,
+  SPACE: 32,
+  PAGE_UP: 33,
+  PAGE_DOWN: 34,
+  END: 35,
+  HOME: 36,
+  LEFT_ARROW: 37,
+  UP_ARROW: 38,
+  RIGHT_ARROW: 39,
+  DOWN_ARROW: 40,
+  INSERT: 45,
+  DELETE: 46,
+  A: 65,
+  B: 66,
+  C: 67,
+  D: 68,
+  E: 69,
+  F: 70,
+  G: 71,
+  H: 72,
+  I: 73,
+  J: 74,
+  K: 75,
+  L: 76,
+  M: 77,
+  N: 78,
+  O: 79,
+  P: 80,
+  Q: 81,
+  R: 82,
+  S: 83,
+  T: 84,
+  U: 85,
+  V: 86,
+  W: 87,
+  X: 88,
+  Y: 89,
+  Z: 90,
+  LEFT_WINDOW_KEY: 91,
+  RIGHT_WINDOW_KEY: 92,
+  SELECT_KEY: 93,
+  NUMPAD_0: 96,
+  NUMPAD_1: 97,
+  NUMPAD_2: 98,
+  NUMPAD_3: 99,
+  NUMPAD_4: 100,
+  NUMPAD_5: 101,
+  NUMPAD_6: 102,
+  NUMPAD_7: 103,
+  NUMPAD_8: 104,
+  NUMPAD_9: 105,
+  MULTIPLY: 106,
+  ADD: 107,
+  SUBTRACT: 109,
+  DECIMAL_POINT: 110,
+  DIVIDE: 111,
+  F1: 112,
+  F2: 113,
+  F3: 114,
+  F4: 115,
+  F5: 116,
+  F6: 117,
+  F7: 118,
+  F8: 119,
+  F9: 120,
+  F10: 121,
+  F11: 122,
+  F12: 123,
+  NUM_LOCK: 144,
+  SCROLL_LOCK: 145,
+  SEMI_COLON: 186,
+  EQUAL_SIGN: 187,
+  COMMA: 188,
+  DASH: 189,
+  PERIOD: 190,
+  FORWARD_SLASH: 191,
+  GRAVE_ACCENT: 192,
+  OPEN_BRACKET: 219,
+  BACK_SLASH: 220,
+  CLOSE_BRAKET: 221,
+  SINGLE_QUOTE: 222,
+  isKeyDown: function isKeyDown(keyCode) {
+    return !!keyboardState.get(keyCode);
+  },
+  isKeyUp: function isKeyUp(keyCode) {
+    return !keyboardState.get(keyCode);
+  },
+  isKeyReleased: function isKeyReleased(keyCode) {
+    return Keyboard.isKeyUp(keyCode) && lastKeyboardState.get(keyCode);
+  },
+  isKeyPushed: function isKeyPushed(keyCode) {
+    return Keyboard.isKeyDown(keyCode) && !lastKeyboardState.get(keyCode);
+  },
+  update: function update() {
+    lastKeyboardState = keyboardState;
+    keyboardState = new Map(lastKeyboardState);
+  }
+};
+// Keep state of all action
+window.addEventListener('keyup', function (event) {
+  keyboardState.set(event.keyCode, false);
+});
+window.addEventListener('keydown', function (event) {
+  keyboardState.set(event.keyCode, true);
+});
+
+var GUICardSelector = function (_PIXI$Graphics) {
+    inherits(GUICardSelector, _PIXI$Graphics);
+
+    function GUICardSelector(x, y) {
+        classCallCheck(this, GUICardSelector);
+
+        var _this = possibleConstructorReturn(this, (GUICardSelector.__proto__ || Object.getPrototypeOf(GUICardSelector)).call(this));
+
+        var WIDTH = 20;
+        var HEIGHT = WIDTH * 2;
+        _this.clear().lineStyle(3, 0, 1).moveTo(WIDTH / 2, 0).lineTo(WIDTH, HEIGHT).lineTo(0, HEIGHT).lineTo(WIDTH / 2, 0);
+        _this.pivot.set(WIDTH / 2, 0);
+        _this.originalY = y;
+        if (x) _this.x = x;
+        if (y) _this.y = y;
+        _this.setCursorCardIndex(game, 0);
+        return _this;
+    }
+
+    createClass(GUICardSelector, [{
+        key: 'setCursorCardIndex',
+        value: function setCursorCardIndex(game, index) {
+            if (index < 0 || index > 4) return;
+            this.index = index;
+            var p = game.player.getChildPosition(index);
+            this.x = p.x + CardsGenerator.CARD_WIDTH / 2;
+        }
+
+        /**
+         * @param {Game} game
+         */
+
+    }, {
+        key: 'update',
+        value: function update(game) {
+            this.y += Math.cos(game._frame / 10);
+
+            if (Keyboard.isKeyPushed(Keyboard.LEFT_ARROW)) {
+                this.setCursorCardIndex(game, this.index - 1);
+            } else if (Keyboard.isKeyPushed(Keyboard.RIGHT_ARROW)) {
+                this.setCursorCardIndex(game, this.index + 1);
+            } else if (Keyboard.isKeyPushed(Keyboard.UP_ARROW)) {
+                game.player.setSelectedCardIndex(this.index, true);
+            } else if (Keyboard.isKeyPushed(Keyboard.DOWN_ARROW)) {
+                game.player.setSelectedCardIndex(this.index, false);
+            } else if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                this.destroy();
+            }
+        }
+    }]);
+    return GUICardSelector;
+}(PIXI$1.Graphics);
+
+var GUIText = function (_PIXI$Text) {
+    inherits(GUIText, _PIXI$Text);
+
+    function GUIText(text, textStyle) {
+        classCallCheck(this, GUIText);
+
+        var _this = possibleConstructorReturn(this, (GUIText.__proto__ || Object.getPrototypeOf(GUIText)).call(this, text, textStyle));
+
+        _this.tags = ['gui'];
+        return _this;
+    }
+
+    createClass(GUIText, [{
+        key: 'update',
+        value: function update() {}
+    }]);
+    return GUIText;
+}(PIXI$1.Text);
+
+var isMe = !!localStorage.getItem('isMe');
+var stopTracking = !!localStorage.getItem('StopTracking') || /localhost\:8080/.test(location.toString()) || typeof mixpanel === 'undefined';
+
+if (stopTracking) console.log('stop-tracking');
+
+if (isMe) {
+    mixpanel.identify('1');
+}
+
+var Tracker = {
+    /**
+     * @param {String} eventName
+     * @param {Object} properties
+     * @param {Function} callback
+     */
+    track: function track(eventName, properties, callback) {
+        if (stopTracking) return;
+        mixpanel.track(eventName, properties, callback);
+    }
+};
+
 var ticker = PIXI.ticker.shared; //new PIXI.ticker.Ticker();
 
 var Game = function () {
@@ -840,8 +1202,8 @@ var Game = function () {
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
 
-        this.fg = new PIXI.Container();
-        this.gui = new LinearLayout();
+        this.fg = new UpdatableContainer();
+        this.gui = new UpdatableContainer();
         this.renderingContainer = new PIXI.Container();
         this.renderingContainer.addChild(this.fg);
         this.renderingContainer.addChild(this.gui);
@@ -895,40 +1257,49 @@ var Game = function () {
             this.player = new PlayerArea(stageWidth / 2, stageHeight / 3 * 2);
 
             this.fg.addChild(this.player);
-            this.gui.addChild(new GUICombosList());
+            //this.gui.addChild(new GUICombosList()); 
+            this.clearBoard();
+            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+        }
+    }, {
+        key: 'clearBoard',
+        value: function clearBoard() {
+            this.player.removeChildren();
+            this.cards = CardsGenerator.generateCards().shuffle();
         }
     }, {
         key: 'distribute',
-        value: function distribute() {
-            this.player.removeChildren();
-            this.cards = CardsGenerator.generateCards().shuffle();
-            var forcedCards = 5;
+        value: function distribute(count) {
 
-            [0, 1, 2, 2, CardsGenerator.JOKER_VALUE].forEach(function (value) {
-                var card = this.cards.getByValue(value);
-                this.player.addChild(card);
-                this.cards.remove(card);
-            }, this);
-
-            // for (let i = 0; i < forcedCards; i++) {
-            //     let card = this.cards.getByValue(2);
-            //     if (i > 3) card = this.cards.getByValue(4);
-            //     this.player.addChild(card)
+            // const forcedCards = 0;
+            // [ 3, 2, 1, 0, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
+            //     const card = this.cards.getByValue(value);
+            //     this.player.addChild(card);
             //     this.cards.remove(card);
-            // }
+            // }, this);
+            // // for (let i = 0; i < forcedCards; i++) {
+            // //     let card = this.cards.getByValue(2);
+            // //     if (i > 3) card = this.cards.getByValue(4);
+            // //     this.player.addChild(card)
+            // //     this.cards.remove(card);
+            // // }
+            // // for (let i = 0; i < forcedCards; i++) {
+            // //     let card = this.cards.getByValue(i + 1);
+            // //     this.player.addChild(card)
+            // //     this.cards.remove(card);
+            // // }
 
-            // for (let i = 0; i < forcedCards; i++) {
-            //     let card = this.cards.getByValue(i + 1);
-            //     this.player.addChild(card)
-            //     this.cards.remove(card);
-            // }
-
-
-            for (var index = 0; index < 5 - forcedCards; index++) {
+            for (var index = 0; index < count; index++) {
                 var card = this.cards.peek();
                 this.player.addChild(card);
                 this.cards.remove(card);
             }
+        }
+    }, {
+        key: 'displayCardCursorSelection',
+        value: function displayCardCursorSelection() {
+            var p = this.player.getChildPosition(0);
+            this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 10));
         }
     }, {
         key: 'setState',
@@ -939,6 +1310,32 @@ var Game = function () {
         key: 'setPlayingState',
         value: function setPlayingState(state) {
             this.playingGameState = state;
+            switch (state) {
+                case Game.STATE_PLAYING_CHOOSE_CARDS:
+                    Tracker.track('game:new');
+                    this.gui.removeChildren();
+                    this.clearBoard();
+                    this.distribute(5);
+                    this.displayCardCursorSelection();
+                    break;
+                case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
+                    this.commitChanges();
+                    var combo = this.getCardComboList().getHigherCombo();
+                    combo.cards.toArray().forEach(function (d) {
+                        d.highlight();
+                    });
+                    Tracker.track('combo', {
+                        type: combo.getTypeName(),
+                        cards: combo.getCards().map(String)
+                    });
+                    var score = new GUIText(combo.getTypeName(), { fontSize: 36 });
+                    this.gui.addChild(score);
+
+                    break;
+                case Game.STATE_PLAYING_CHOOSE_RISK:
+                    break;
+
+            }
         }
     }, {
         key: 'getFPS',
@@ -994,14 +1391,36 @@ var Game = function () {
         key: 'loop',
         value: function loop(time) {
             this._frame += 1;
+
             this.gui.update(this);
+
+            if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
+                if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                    this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
+                }
+            } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
+                if (Keyboard.isKeyPushed(Keyboard.SPACE) || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                    this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                }
+            }
+
             this.renderer.render(this.renderingContainer);
-            if (this._frame % 10 === 0) {}
+            Keyboard.update();
         }
     }, {
         key: 'getCardComboList',
         value: function getCardComboList() {
             return new CardComboList(this.player.getCards());
+        }
+    }, {
+        key: 'commitChanges',
+        value: function commitChanges() {
+            var cards = game.player.selectedCardsToBeChanged.splice(0, game.player.selectedCardsToBeChanged.length);
+            var cardsLen = cards.length;
+            cards.forEach(function (c) {
+                c.destroy();
+            });
+            this.distribute(cardsLen);
         }
 
         /**
@@ -1035,8 +1454,13 @@ Game.STATE_GAMEOVER = 4;
 
 Game.STATE_PLAYING_CHOOSE_BET = 1;
 Game.STATE_PLAYING_CHOOSE_CARDS = 2;
-Game.STATE_PLAYING_CHOOSE_DOUBLE_DOWN = 4;
-Game.STATE_PLAYING_DISPLAY_DOUBLE_DOWN = 8;
+Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 4;
+Game.STATE_PLAYING_DISPLAY_RIVER_SCORE = 8;
+Game.STATE_PLAYING_CHOOSE_RISK = 16;
+Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 32;
+Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 64;
+
+Tracker.track('pageview');
 
 var poker_game = {
     Card: Card, Game: Game

@@ -92,7 +92,7 @@ export class CardComboList {
 
             return new CardCombo({
                 type: ComboType.TwoPair,
-                cards: [].concat(...pairs.map((d) => d.cards))
+                cards: [].concat(...pairs.map((d) => d.cards.toArray()))
             });
         }
     }
@@ -113,7 +113,6 @@ export class CardComboList {
                     localeCards.push(cards[index]);
                 }
             }
-            console.log(localeCards.toString());
             if (localeCards.length > 1 && localeCards.length < 6) {
                 combos.push(new CardCombo({
                     type: comboTypeMapper[localeCards.length],
@@ -136,12 +135,14 @@ export class CardComboList {
     }
 
     _getStraight() {
-        // TODO: Joker
         const cards = this.originalCollection.toArray();
-        const values = cards.map((d) => d.value).sort();
-        for (let index = 1, i = values[0]; index < values.length; index++) {
-            if (i + 1 !== values[index]) return;
-            i++;
+        const values = cards.map((d) => d.value).sort(Numbers.Compare.asc);
+        let jokers = cards.filter((d) => d.isJoker()).length;
+        for (let index = 1, value = values[0]; index < values.length; index++) {
+            const match = value + 1 === values[index];
+            if (!match && jokers === 0) return;
+            if (!match) jokers--;
+            value++;
         }
         return new CardCombo({
             type: ComboType.Straight,
@@ -198,7 +199,7 @@ export class CardComboList {
     }
 
 }
-
+// TODO: TEST K 4 4 K J
 export class CardCombo {
 
     constructor(object) {
@@ -206,6 +207,7 @@ export class CardCombo {
         this.cards = new CardCollection();
         if (object.cards) this.cards.addAll(object.cards);
         else if (object.card) this.cards.add(object.card);
+        this.getCards().sort((a, b) => Numbers.Compare.asc(a.value, b.value));
     }
 
     getCard() { return this.cards.peek(); }

@@ -5,6 +5,7 @@ import filter from 'gulp-filter';
 import rename from 'gulp-rename';
 import sourcemaps from 'gulp-sourcemaps';
 import uglify from 'gulp-uglify';
+import concat from 'gulp-concat';
 
 import { rollup } from 'rollup';
 import babel from 'rollup-plugin-babel';
@@ -15,6 +16,12 @@ import {name} from '../package.json';
 
 const srcPath = 'src/';
 const buildPath = 'dist/';
+
+const libFiles = [
+  'bower_components/mersennetwister/src/MersenneTwister.js',
+  'bower_components/jquery/dist/jquery.min.js',
+  'bower_components/pixi.js/dist/pixi.min.js'
+];
 
 function _generate(bundle){
   return bundle.generate({
@@ -50,7 +57,7 @@ function bundle(opts) {
   });
 }
 
-gulp.task('build:js', function() {
+gulp.task('build:js:src', function() {
   return bundle().then(gen => {
     return file(name + '.js', gen.code, {src: true})
       .pipe(plumber())
@@ -67,3 +74,12 @@ gulp.task('build:js', function() {
       .pipe(gulp.dest(buildPath));
   });
 });
+
+gulp.task('build:js:lib', function() {
+  return gulp.src(libFiles)
+      .pipe(plumber())
+      .pipe(concat('lib.js'))
+      .pipe(gulp.dest('website/'));
+});
+
+gulp.task('build:js', [ 'build:js:lib', 'build:js:src' ]);
