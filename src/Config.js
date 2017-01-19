@@ -17,3 +17,23 @@ export var BigText = {
         fontWeight: 900
     }
 };
+
+export var GuiText = {
+    textConfig: {
+        fontSize: 16,
+        fontFamily: 'Verdana',
+        fill: 0xffffff,
+        stroke: 0,
+        strokeThickness: 3,
+        fontWeight: 300
+    }
+};
+
+export var GuiToken = {
+    textConfig: {
+        fontSize: 20,
+        fontFamily: 'Verdana',
+        fill: 0xffffff,
+        letterSpacing: 4
+    }
+};

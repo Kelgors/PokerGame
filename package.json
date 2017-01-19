@@ -1,6 +1,6 @@
 {
   "name": "poker_game",
-  "version": "0.0.4-PRE-Alpha",
+  "version": "0.0.5-PRE-Alpha",
   "main": "index.js",
   "author": "Kelgors",
   "license": "MIT",

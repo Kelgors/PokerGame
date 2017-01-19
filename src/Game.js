@@ -10,11 +10,14 @@ import Tracker from './Tracker';
 
 import GUIScoreLayout from './gui/GUIScoreLayout';
 import GUIContext from './gui/GUIContext';
+import TopMenuLayout from './gui/TopMenuLayout';
 
 import CardCollection from './CardCollection';
 
 import AbsCardArea from './containers/AbsCardArea';
 import CardRiverArea from './containers/CardRiverArea';
+
+import i18n from './i18n';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 
@@ -26,6 +29,12 @@ export default class Game {
         this.cards = null;
         /** @type {AbsCardArea} */
         this.river = null;
+
+        i18n.setup(options.langs);
+
+        this.tokenCount = 54960;
+        this.originalBetCount = 100;
+        this.betCount = 100;
 
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
@@ -44,7 +53,7 @@ export default class Game {
             clearBeforeRender: true,
             backgroundColor: options.backgroundColor,
             roundPixels: options.roundPixels || true
-        }; 
+        };
         this.renderer = PIXI.autoDetectRenderer(options.width || 800, options.height || 600, rendererOptions, false);
         /** @type {HTMLElement} */
         this.container = null;
@@ -82,8 +91,12 @@ export default class Game {
         this.river = new CardRiverArea(stageWidth/2, stageHeight/4*2);
         this.fg.addChild(this.river);
         const contextualBox = new GUIContext(0, stageHeight * 5/6, this);
+        const topMenu = new TopMenuLayout(0, 0, this);
+
         this.fg.addChild(contextualBox);
+        this.fg.addChild(topMenu);
         contextualBox.update(this);
+        topMenu.update(this);
         this.clearBoard();
         this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
           
@@ -124,7 +137,9 @@ export default class Game {
 
     displayCardCursorSelection() {
         const p = this.river.getCardAt(0);
-        this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25));
+        const cursor = new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25)
+        cursor.setCursorCardIndex(this, 0);
+        this.gui.addChild(cursor);
     }
 
     setState(state) {
@@ -135,6 +150,8 @@ export default class Game {
         this.playingGameState = state;
         switch (state) {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
+                this.betCount = this.originalBetCount;
+                this.tokenCount -= this.originalBetCount;
                 Tracker.track('game:new');
                 this.gui.destroyChildren();
                 this.fg.findChildrenByType(GUIContext).displayControls();
@@ -144,14 +161,17 @@ export default class Game {
                 break;
             case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
                 this.commitChanges();
-                const combo = this.getCardComboList().getHigherCombo();
-                combo.getCards().forEach(function (d) {
-                    d.highlight();
-                });
-                Tracker.track('combo', {
-                    type: combo.getTypeName(),
-                    cards: combo.getCards().map(String)
-                });
+                const combo = this.getCardComboList().getHigherCombo() || null;
+                if (combo) {
+                    combo.getCards().forEach(function (d) {
+                        d.highlight();
+                    });
+                    Tracker.track('combo', {
+                        type: combo.getTypeName(),
+                        cards: combo.getCards().map(String)
+                    });
+                    this.betCount = this.originalBetCount * combo.type;
+                }
                 this.fg.findChildrenByType(GUIContext).displayCombo(combo);
                 this.gui.addChild(new GUIScoreLayout({
                     playerCombo: combo,
@@ -223,10 +243,13 @@ export default class Game {
             } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
                 let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);  
                 if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                    if (scoreLayout.playerCombo.type > 2) {
-                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
-                    } else {
+                    if (!scoreLayout.playerCombo || scoreLayout.playerCombo.type < 2) {
+                        if (scoreLayout.playerCombo) {
+                            this.tokenCount += this.betCount;
+                        }
                         this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                    } else {
+                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
                     }
                 }
             }

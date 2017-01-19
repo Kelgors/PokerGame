@@ -1,4 +1,4 @@
-import ContextualBox from './ContextualBox';
+import ContextualBox from '../ContextualBox';
 import Rect from '../../lib/Rect';
 import LinearLayout from '../LinearLayout';
 import {CardCombo} from '../../CardComboList';
@@ -34,12 +34,12 @@ export default class ContextualDisplayer extends ContextualBox {
             strokeThickness: 3
         };
 
-        col1.addChild(new PIXI.Text('\u25C0 \u25B6 Déplacer le curseur', textStyle));
-        col1.addChild(new PIXI.Text('\u2B06 / \u2B07 Sélectionner une carte', textStyle));
+        col1.addChild(new PIXI.Text('\u25C0 \u25B6 ' + i18n.t('Controls.MoveCursor'), textStyle));
+        col1.addChild(new PIXI.Text('\u2B06 / \u2B07 ' + i18n.t('Controls.SelectCard'), textStyle));
         col1.updateChildrenPosition();
 
-        col2.addChild(new PIXI.Text('Shift + \u2B06 / \u2B07 Sélectionner toutes les cartes', textStyle));
-        col2.addChild(new PIXI.Text('Entrée Changer de carte', textStyle));
+        col2.addChild(new PIXI.Text('Shift + \u2B06 / \u2B07 ' + i18n.t('Controls.SelectCards'), textStyle));
+        col2.addChild(new PIXI.Text('Entrée ' + i18n.t('Controls.CommitChanges'), textStyle));
         col1.updateChildrenPosition();
         col2.updateChildrenPosition();
         
@@ -48,7 +48,7 @@ export default class ContextualDisplayer extends ContextualBox {
         rows.updateChildrenPosition();
 
 
-        const label = new PIXI.Text('Sélectionnez les cartes que vous souhaitez échanger.', textStyle);
+        const label = new PIXI.Text(i18n.t('Controls.ControlsLabel'), textStyle);
         label.x = 30;
         label.y = 10;
         this.addChild(label);
@@ -70,8 +70,10 @@ export default class ContextualDisplayer extends ContextualBox {
             strokeThickness: 3,
             fontSize: 18
         };
-        
-        row.addChild(new PIXI.Text(`"${i18n.combo(combo.type, combo.getTypeName())}"`, textStyle));
+
+        let comboName = 'NoCombo';
+        if (combo) comboName = combo.getTypeName();
+        row.addChild(new PIXI.Text(`"${i18n.t('ComboType.' + comboName)}"`, textStyle));
 
         row.updateChildrenPosition();
         row.y = row.height / 2;
@@ -98,9 +100,24 @@ export default class ContextualDisplayer extends ContextualBox {
             strokeThickness: 4
         };
 
-        texts.addChild(new PIXI.Text('Voulez-vous', textStyleWhite));
-        texts.addChild(new PIXI.Text('doubler', textStyleOrange));
-        texts.addChild(new PIXI.Text('votre mise ?', textStyleWhite));
+        // TODO: Abstractize this part
+        const text = i18n.t('Bet.ChooseBet');
+        let bold = false;
+        let beginIndex = 0;
+        for (let index = 0; index < text.length; index++) {
+            const isLastItem = index + 1 >= text.length;
+            if ((!bold && text.charAt(index) === '*') || isLastItem) {
+                texts.addChild(new PIXI.Text(text.slice(beginIndex, isLastItem ? index + 1 : index).trim(), textStyleWhite));
+                beginIndex = index+1;
+                bold = true;
+                index++;
+            } else if ((bold && text.charAt(index) === '*') || isLastItem) {
+                texts.addChild(new PIXI.Text(text.slice(beginIndex, isLastItem ? index + 1 : index).trim(), textStyleOrange));
+                beginIndex = index+1;
+                bold = false;
+                index++;
+            }
+        }
 
         texts.updateChildrenPosition();
         texts.y = texts.height / 2;

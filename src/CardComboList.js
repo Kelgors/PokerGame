@@ -3,17 +3,24 @@ import Arrays from './Arrays';
 import Numbers from './Numbers';
 
 export var ComboType = {
-    HigherCard: 1,
-    Pair: 2,
-    TwoPair: 3,
-    ThreeOfAKind: 4,
+    Pair: 1,
+    TwoPair: 2,
+    ThreeOfAKind: 3,
     Straight: 5,
-    Flush: 6,
-    FullHouse: 7,
-    FourOfAKind: 8,
-    StraightFlush: 9,
-    FiveOfAKind: 10
+    Flush: 7,
+    FullHouse: 8,
+    FourOfAKind: 10,
+    StraightFlush: 20,
+    RoyalFlush: 50,
+    FiveOfAKind: 100
 };
+
+Object.defineProperty(ComboType, 'forName', {
+    enumerable: false,
+    value: function forName(type) {
+        return Object.keys(ComboType).find((key) => ComboType[key] === type);
+    }
+});
 
 export class CardComboList {
     
@@ -48,8 +55,6 @@ export class CardComboList {
     }
 
     _parse() {
-        // 1- HigherCard
-        this.add({ type: ComboType.HigherCard, card: this._getHigherCard() });
         // 2 - Pair
         // 4 - ThreeOfAKind
         // 8 - FourOfAKind
@@ -152,21 +157,14 @@ export class CardComboList {
 
     _getFlush() {
         const cards = this.originalCollection.toArray();
-        let black = 0, red = 0;
-        for (let index = 0; index < cards.length; index++) {
-            if (cards[index].isJoker()) {
-                black++;
-                red++;
-            } else if (/Spades|Clubs/.test(cards[index].getSuit())) {
-                black++;
-            } else red++;
+        let firstSuit = cards[0].suit;
+        for (let index = 1; index < cards.length; index++) {
+            if (cards[index].suit !== firstSuit && !cards[index].isJoker()) return null;
         }
-        if (black === cards.length || red === cards.length) {
-            return new CardCombo({
-                type: ComboType.Flush,
-                cards: cards
-            });
-        } 
+        return new CardCombo({
+            type: ComboType.Flush,
+            cards: cards
+        });
     }
 
     _getStraightFlush() {
@@ -200,6 +198,7 @@ export class CardComboList {
 
 }
 // TODO: TEST K 4 4 K J
+// TODO: TEST Q 5 5 Q J
 export class CardCombo {
 
     constructor(object) {
@@ -230,8 +229,7 @@ export class CardCombo {
     }
 
     getTypeName() {
-        const keys = Object.keys(ComboType);
-        return keys.find((key) => ComboType[key] === this.type);
+        return ComboType.forName(this.type);
     }
 
     toString() {

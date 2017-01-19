@@ -52,19 +52,21 @@ export default class GUIScoreLayout extends UpdatableContainer {
     }
 
     spawnSuitName() {
-        this.addChild(new GUIText(i18n.combo(this.playerCombo.type, this.playerCombo.getTypeName()), BigText.textConfig));
+        let comboName = 'NoCombo';
+        if (this.playerCombo) comboName = this.playerCombo.getTypeName();
+        this.addChild(new GUIText(i18n.t('ComboType.' + comboName), BigText.textConfig));
     }
 
     spawnComparison() {
         //const iaScore = this.iaCombo.getScore();
         const iaScore = ComboType.Pair;
-        const playerScore = this.playerCombo.type;
+        const playerScore = this.playerCombo ? this.playerCombo.type : 0;
         console.log('playerScore: %s, iaScore: %s', playerScore, iaScore);
-        let comparisonLabel = 'Défaite';
+        let comparisonLabel = i18n.t('Defeat');
         if (playerScore > iaScore) {
-            comparisonLabel = 'Victoire';
+            comparisonLabel = i18n.t('Victory');
         } else if (playerScore === iaScore) {
-            comparisonLabel = 'Égalité';
+            comparisonLabel = i18n.t('Draw');
         }
         this.addChild(new GUIText(comparisonLabel, BigText.textConfig));
     }

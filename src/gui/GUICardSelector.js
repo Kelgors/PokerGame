@@ -21,7 +21,6 @@ export default class GUICardSelector extends PIXI.Graphics {
         this.originalY = y;
         if (x) this.x = x;
         if (y) this.y = y;
-        this.setCursorCardIndex(game, 0);
     }
 
     setCursorCardIndex(game, index) {

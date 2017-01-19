@@ -1,18 +1,26 @@
 import {ComboType} from './CardComboList';
-const translations = {
-    [ComboType.Pair]: 'Paire',
-    [ComboType.ThreeOfAKind]: 'Brelan',
-    [ComboType.FourOfAKind]: 'Carré',
-    [ComboType.FiveOfAKind]: 'Quinte',
-    [ComboType.Flush]: 'Flush',
-    [ComboType.FullHouse]: 'Full',
-    [ComboType.HigherCard]: 'Higher Card',
-    [ComboType.TwoPair]: 'Deux paires'
-};
 
+let languages = [];
+let currentLang = null;
 
 export default {
-    combo(name, defaultValue) {
-        return translations[name] || defaultValue;
-    }    
+    setup(langs) {
+        languages = langs;
+        currentLang = languages[0];
+    },
+    t(chainedName) {
+        const names = chainedName.split('.');
+        let currentObject = currentLang;
+        for (let index = 0; index < names.length; index++) {
+            const keyName = names[index];
+            if (keyName in currentObject) {
+                if (typeof currentObject[keyName] !== 'object') {
+                    return currentObject[keyName];
+                } else {
+                    currentObject = currentObject[keyName];
+                }
+            }
+        }
+        return '';
+    }
 };

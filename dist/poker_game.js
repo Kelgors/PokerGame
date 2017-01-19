@@ -6,6 +6,22 @@
 
 PIXI$1 = 'default' in PIXI$1 ? PIXI$1['default'] : PIXI$1;
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+
+
+
+
+
+
+
+
+
+
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -34,20 +50,7 @@ var createClass = function () {
 
 
 
-var defineProperty = function (obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
 
-  return obj;
-};
 
 var get = function get(object, property, receiver) {
   if (object === null) object = Function.prototype;
@@ -634,17 +637,26 @@ var Numbers = {
 };
 
 var ComboType = {
-    HigherCard: 1,
-    Pair: 2,
-    TwoPair: 3,
-    ThreeOfAKind: 4,
+    Pair: 1,
+    TwoPair: 2,
+    ThreeOfAKind: 3,
     Straight: 5,
-    Flush: 6,
-    FullHouse: 7,
-    FourOfAKind: 8,
-    StraightFlush: 9,
-    FiveOfAKind: 10
+    Flush: 7,
+    FullHouse: 8,
+    FourOfAKind: 10,
+    StraightFlush: 20,
+    RoyalFlush: 50,
+    FiveOfAKind: 100
 };
+
+Object.defineProperty(ComboType, 'forName', {
+    enumerable: false,
+    value: function forName(type) {
+        return Object.keys(ComboType).find(function (key) {
+            return ComboType[key] === type;
+        });
+    }
+});
 
 var CardComboList = function () {
 
@@ -690,8 +702,6 @@ var CardComboList = function () {
     }, {
         key: '_parse',
         value: function _parse() {
-            // 1- HigherCard
-            this.add({ type: ComboType.HigherCard, card: this._getHigherCard() });
             // 2 - Pair
             // 4 - ThreeOfAKind
             // 8 - FourOfAKind
@@ -815,22 +825,14 @@ var CardComboList = function () {
         key: '_getFlush',
         value: function _getFlush() {
             var cards = this.originalCollection.toArray();
-            var black = 0,
-                red = 0;
-            for (var index = 0; index < cards.length; index++) {
-                if (cards[index].isJoker()) {
-                    black++;
-                    red++;
-                } else if (/Spades|Clubs/.test(cards[index].getSuit())) {
-                    black++;
-                } else red++;
+            var firstSuit = cards[0].suit;
+            for (var index = 1; index < cards.length; index++) {
+                if (cards[index].suit !== firstSuit && !cards[index].isJoker()) return null;
             }
-            if (black === cards.length || red === cards.length) {
-                return new CardCombo({
-                    type: ComboType.Flush,
-                    cards: cards
-                });
-            }
+            return new CardCombo({
+                type: ComboType.Flush,
+                cards: cards
+            });
         }
     }, {
         key: '_getStraightFlush',
@@ -875,6 +877,7 @@ var CardComboList = function () {
     return CardComboList;
 }();
 // TODO: TEST K 4 4 K J
+// TODO: TEST Q 5 5 Q J
 var CardCombo = function () {
     function CardCombo(object) {
         classCallCheck(this, CardCombo);
@@ -924,12 +927,7 @@ var CardCombo = function () {
     }, {
         key: 'getTypeName',
         value: function getTypeName() {
-            var _this2 = this;
-
-            var keys = Object.keys(ComboType);
-            return keys.find(function (key) {
-                return ComboType[key] === _this2.type;
-            });
+            return ComboType.forName(this.type);
         }
     }, {
         key: 'toString',
@@ -1036,6 +1034,26 @@ var BigText = {
         strokeThickness: 8,
         fontVariant: 'small-caps',
         fontWeight: 900
+    }
+};
+
+var GuiText = {
+    textConfig: {
+        fontSize: 16,
+        fontFamily: 'Verdana',
+        fill: 0xffffff,
+        stroke: 0,
+        strokeThickness: 3,
+        fontWeight: 300
+    }
+};
+
+var GuiToken = {
+    textConfig: {
+        fontSize: 20,
+        fontFamily: 'Verdana',
+        fill: 0xffffff,
+        letterSpacing: 4
     }
 };
 
@@ -1198,7 +1216,6 @@ var GUICardSelector = function (_PIXI$Graphics) {
         _this.originalY = y;
         if (x) _this.x = x;
         if (y) _this.y = y;
-        _this.setCursorCardIndex(game, 0);
         return _this;
     }
 
@@ -1439,13 +1456,28 @@ var Tracker = {
     }
 };
 
-var _translations;
-
-var translations = (_translations = {}, defineProperty(_translations, ComboType.Pair, 'Paire'), defineProperty(_translations, ComboType.ThreeOfAKind, 'Brelan'), defineProperty(_translations, ComboType.FourOfAKind, 'Carré'), defineProperty(_translations, ComboType.FiveOfAKind, 'Quinte'), defineProperty(_translations, ComboType.Flush, 'Flush'), defineProperty(_translations, ComboType.FullHouse, 'Full'), defineProperty(_translations, ComboType.HigherCard, 'Higher Card'), defineProperty(_translations, ComboType.TwoPair, 'Deux paires'), _translations);
+var languages = [];
+var currentLang = null;
 
 var i18n = {
-    combo: function combo(name, defaultValue) {
-        return translations[name] || defaultValue;
+    setup: function setup(langs) {
+        languages = langs;
+        currentLang = languages[0];
+    },
+    t: function t(chainedName) {
+        var names = chainedName.split('.');
+        var currentObject = currentLang;
+        for (var index = 0; index < names.length; index++) {
+            var keyName = names[index];
+            if (keyName in currentObject) {
+                if (_typeof(currentObject[keyName]) !== 'object') {
+                    return currentObject[keyName];
+                } else {
+                    currentObject = currentObject[keyName];
+                }
+            }
+        }
+        return '';
     }
 };
 
@@ -1502,20 +1534,22 @@ var GUIScoreLayout = function (_UpdatableContainer) {
     }, {
         key: 'spawnSuitName',
         value: function spawnSuitName() {
-            this.addChild(new GUIText(i18n.combo(this.playerCombo.type, this.playerCombo.getTypeName()), BigText.textConfig));
+            var comboName = 'NoCombo';
+            if (this.playerCombo) comboName = this.playerCombo.getTypeName();
+            this.addChild(new GUIText(i18n.t('ComboType.' + comboName), BigText.textConfig));
         }
     }, {
         key: 'spawnComparison',
         value: function spawnComparison() {
             //const iaScore = this.iaCombo.getScore();
             var iaScore = ComboType.Pair;
-            var playerScore = this.playerCombo.type;
+            var playerScore = this.playerCombo ? this.playerCombo.type : 0;
             console.log('playerScore: %s, iaScore: %s', playerScore, iaScore);
-            var comparisonLabel = 'Défaite';
+            var comparisonLabel = i18n.t('Defeat');
             if (playerScore > iaScore) {
-                comparisonLabel = 'Victoire';
+                comparisonLabel = i18n.t('Victory');
             } else if (playerScore === iaScore) {
-                comparisonLabel = 'Égalité';
+                comparisonLabel = i18n.t('Draw');
             }
             this.addChild(new GUIText(comparisonLabel, BigText.textConfig));
         }
@@ -1708,12 +1742,12 @@ var ContextualDisplayer = function (_ContextualBox) {
                 strokeThickness: 3
             };
 
-            col1.addChild(new PIXI.Text('\u25C0 \u25B6 D\xE9placer le curseur', textStyle));
-            col1.addChild(new PIXI.Text('\u2B06 / \u2B07 S\xE9lectionner une carte', textStyle));
+            col1.addChild(new PIXI.Text('\u25C0 \u25B6 ' + i18n.t('Controls.MoveCursor'), textStyle));
+            col1.addChild(new PIXI.Text('\u2B06 / \u2B07 ' + i18n.t('Controls.SelectCard'), textStyle));
             col1.updateChildrenPosition();
 
-            col2.addChild(new PIXI.Text('Shift + \u2B06 / \u2B07 S\xE9lectionner toutes les cartes', textStyle));
-            col2.addChild(new PIXI.Text('Entrée Changer de carte', textStyle));
+            col2.addChild(new PIXI.Text('Shift + \u2B06 / \u2B07 ' + i18n.t('Controls.SelectCards'), textStyle));
+            col2.addChild(new PIXI.Text('Entrée ' + i18n.t('Controls.CommitChanges'), textStyle));
             col1.updateChildrenPosition();
             col2.updateChildrenPosition();
 
@@ -1721,7 +1755,7 @@ var ContextualDisplayer = function (_ContextualBox) {
             rows.addChild(col2);
             rows.updateChildrenPosition();
 
-            var label = new PIXI.Text('Sélectionnez les cartes que vous souhaitez échanger.', textStyle);
+            var label = new PIXI.Text(i18n.t('Controls.ControlsLabel'), textStyle);
             label.x = 30;
             label.y = 10;
             this.addChild(label);
@@ -1747,7 +1781,9 @@ var ContextualDisplayer = function (_ContextualBox) {
                 fontSize: 18
             };
 
-            row.addChild(new PIXI.Text('"' + i18n.combo(combo.type, combo.getTypeName()) + '"', textStyle));
+            var comboName = 'NoCombo';
+            if (combo) comboName = combo.getTypeName();
+            row.addChild(new PIXI.Text('"' + i18n.t('ComboType.' + comboName) + '"', textStyle));
 
             row.updateChildrenPosition();
             row.y = row.height / 2;
@@ -1775,9 +1811,24 @@ var ContextualDisplayer = function (_ContextualBox) {
                 strokeThickness: 4
             };
 
-            texts.addChild(new PIXI.Text('Voulez-vous', textStyleWhite));
-            texts.addChild(new PIXI.Text('doubler', textStyleOrange));
-            texts.addChild(new PIXI.Text('votre mise ?', textStyleWhite));
+            // TODO: Abstractize this part
+            var text = i18n.t('Bet.ChooseBet');
+            var bold = false;
+            var beginIndex = 0;
+            for (var index = 0; index < text.length; index++) {
+                var isLastItem = index + 1 >= text.length;
+                if (!bold && text.charAt(index) === '*' || isLastItem) {
+                    texts.addChild(new PIXI.Text(text.slice(beginIndex, isLastItem ? index + 1 : index).trim(), textStyleWhite));
+                    beginIndex = index + 1;
+                    bold = true;
+                    index++;
+                } else if (bold && text.charAt(index) === '*' || isLastItem) {
+                    texts.addChild(new PIXI.Text(text.slice(beginIndex, isLastItem ? index + 1 : index).trim(), textStyleOrange));
+                    beginIndex = index + 1;
+                    bold = false;
+                    index++;
+                }
+            }
 
             texts.updateChildrenPosition();
             texts.y = texts.height / 2;
@@ -1928,6 +1979,12 @@ var GUIContext = function (_UpdatableContainer) {
     }
 
     createClass(GUIContext, [{
+        key: 'destroy',
+        value: function destroy() {
+            this.game = null;
+            get(GUIContext.prototype.__proto__ || Object.getPrototypeOf(GUIContext.prototype), 'destroy', this).call(this);
+        }
+    }, {
         key: 'update',
         value: function update(game) {
             this._width = game.renderer.width - MARGIN_HONRIZONTAL * 2;
@@ -1963,14 +2020,15 @@ var GUIContext = function (_UpdatableContainer) {
 
             this.getChildAt(0).displayChooseBet();
             this.getChildAt(1).displayMenu([{
-                label: 'Yes',
+                label: i18n.t('Yes'),
                 callback: function callback() {
                     return _this2.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN);
                 }
             }, {
-                label: 'No',
+                label: i18n.t('No'),
                 callback: function callback() {
-                    return _this2.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                    _this2.game.tokenCount += _this2.game.betCount;
+                    _this2.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
                 }
             }]);
         }
@@ -1979,6 +2037,210 @@ var GUIContext = function (_UpdatableContainer) {
         value: function displayMenu() {}
     }]);
     return GUIContext;
+}(UpdatableContainer);
+
+var GUIComboTypeItem = function (_PIXI$Container) {
+    inherits(GUIComboTypeItem, _PIXI$Container);
+
+    function GUIComboTypeItem(options) {
+        classCallCheck(this, GUIComboTypeItem);
+
+        var _this = possibleConstructorReturn(this, (GUIComboTypeItem.__proto__ || Object.getPrototypeOf(GUIComboTypeItem)).call(this));
+
+        _this.comboType = options.comboType;
+        _this.parentWidth = options.parentWidth;
+        _this.redraw();
+        return _this;
+    }
+
+    createClass(GUIComboTypeItem, [{
+        key: 'redraw',
+        value: function redraw() {
+            this.removeChildren();
+            var comboName = ComboType.forName(this.comboType);
+            var localeComboName = i18n.t('ComboType.' + comboName);
+            this.addChild(new PIXI$1.Text(localeComboName, GuiText.textConfig));
+            var factorText = new PIXI$1.Text('\xD7 ' + this.comboType, GuiText.textConfig);
+
+            factorText.x = this.parentWidth - 50;
+            this.addChild(factorText);
+        }
+    }]);
+    return GUIComboTypeItem;
+}(PIXI$1.Container);
+
+var GUIComboTypesList = function (_ContextualBox) {
+    inherits(GUIComboTypesList, _ContextualBox);
+
+    function GUIComboTypesList(options) {
+        classCallCheck(this, GUIComboTypesList);
+        return possibleConstructorReturn(this, (GUIComboTypesList.__proto__ || Object.getPrototypeOf(GUIComboTypesList)).call(this));
+    }
+
+    createClass(GUIComboTypesList, [{
+        key: 'drawBox',
+        value: function drawBox(game) {
+            /** @type {PIXI.Graphics} */
+            var graphics = this;
+            var rect = new Rect(0, this.parent.getWidth() * 4 / 5 - 10, this.parent.getHeight() / 4, 0);
+            this._drawBox(graphics, rect);
+            this.drawLists();
+        }
+    }, {
+        key: 'drawLists',
+        value: function drawLists() {
+            var MARGIN_HOR = 20;
+            var width = this.width - MARGIN_HOR * 2;
+            var linearLayoutWidth = width / 2 - MARGIN_HOR;
+
+            var col1 = new LinearLayout({
+                childMargin: 4,
+                x: MARGIN_HOR * 1.5 + 5,
+                y: 12
+            });
+
+            var col2 = new LinearLayout({
+                childMargin: 4,
+                x: width / 2 + col1.x,
+                y: 12
+            });
+
+            this.removeChildren();
+            this.addChild(col1);
+            this.addChild(col2);
+
+            var values = Object.keys(ComboType).map(function (d) {
+                return ComboType[d];
+            }).sort(Numbers.Compare.desc);
+            [values.slice(0, Math.floor(values.length / 2)), values.slice(Math.floor(values.length / 2), values.length)].forEach(function (values, i) {
+                var layout = this.getChildAt(i);
+                values.forEach(function (value) {
+                    layout.addChild(new GUIComboTypeItem({
+                        comboType: value,
+                        parentWidth: linearLayoutWidth
+                    }));
+                }, this);
+                layout.updateChildrenPosition();
+            }, this);
+        }
+    }]);
+    return GUIComboTypesList;
+}(ContextualBox);
+
+var GUIBetBox = function (_ContextualBox) {
+    inherits(GUIBetBox, _ContextualBox);
+
+    function GUIBetBox() {
+        classCallCheck(this, GUIBetBox);
+
+        var _this = possibleConstructorReturn(this, (GUIBetBox.__proto__ || Object.getPrototypeOf(GUIBetBox)).call(this));
+
+        _this.addChild(new PIXI$1.Text(i18n.t('Bet.Bet'), GuiText.textConfig));
+        _this.addChild(_this.betText = new PIXI$1.Text('0', GuiToken.textConfig));
+        return _this;
+    }
+
+    createClass(GUIBetBox, [{
+        key: 'drawBox',
+        value: function drawBox(game) {
+            /** @type {PIXI.Graphics} */
+            var graphics = this;
+            this.x = this.parent.getWidth() * 4 / 5;
+            this.y = this.parent.getHeight() / 8 + 5;
+            var rect = new Rect(0, this.parent.getWidth() - 10 - this.x, this.parent.getHeight() / 4 - this.y, 0);
+            this._drawBox(graphics, rect);
+            this.getChildAt(0).position.set(10, 10);
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            get(GUIBetBox.prototype.__proto__ || Object.getPrototypeOf(GUIBetBox.prototype), 'update', this).call(this, game);
+            this.betText.text = game.betCount;
+            this.betText.position.set(this.width - this.betText.width - 10, this.height - this.betText.height - 10);
+        }
+    }]);
+    return GUIBetBox;
+}(ContextualBox);
+
+var GUITokenCount = function (_ContextualBox) {
+    inherits(GUITokenCount, _ContextualBox);
+
+    function GUITokenCount() {
+        classCallCheck(this, GUITokenCount);
+
+        var _this = possibleConstructorReturn(this, (GUITokenCount.__proto__ || Object.getPrototypeOf(GUITokenCount)).call(this));
+
+        _this.addChild(new PIXI$1.Text(i18n.t('TotalToken'), GuiText.textConfig));
+        _this.addChild(_this.totalTokenText = new PIXI$1.Text('0', GuiToken.textConfig));
+        return _this;
+    }
+
+    createClass(GUITokenCount, [{
+        key: 'drawBox',
+        value: function drawBox(game) {
+            /** @type {PIXI.Graphics} */
+            var graphics = this;
+            this.x = this.parent.getWidth() * 4 / 5;
+            var rect = new Rect(0, this.parent.getWidth() - 10 - this.x, this.parent.getHeight() / 8 - 5, 0);
+            this._drawBox(graphics, rect);
+            this.getChildAt(0).position.set(10, 10);
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            get(GUITokenCount.prototype.__proto__ || Object.getPrototypeOf(GUITokenCount.prototype), 'update', this).call(this, game);
+            this.totalTokenText.text = game.tokenCount;
+            this.totalTokenText.position.set(this.width - this.totalTokenText.width - 10, this.height - this.totalTokenText.height - 10);
+        }
+    }]);
+    return GUITokenCount;
+}(ContextualBox);
+
+var MARGIN_HONRIZONTAL$1 = 10;
+var MARGIN_VERTICAL$1 = 15;
+
+var TopMenuLayout = function (_UpdatableContainer) {
+    inherits(TopMenuLayout, _UpdatableContainer);
+
+    function TopMenuLayout(x, y, game) {
+        classCallCheck(this, TopMenuLayout);
+
+        var _this = possibleConstructorReturn(this, (TopMenuLayout.__proto__ || Object.getPrototypeOf(TopMenuLayout)).call(this));
+
+        _this.game = game;
+        _this.x = x + MARGIN_HONRIZONTAL$1;
+        _this.y = y + MARGIN_VERTICAL$1;
+        _this.addChild(new GUIComboTypesList());
+        _this.addChild(new GUIBetBox());
+        _this.addChild(new GUITokenCount());
+        return _this;
+    }
+
+    createClass(TopMenuLayout, [{
+        key: 'destroy',
+        value: function destroy() {
+            this.game = null;
+            get(TopMenuLayout.prototype.__proto__ || Object.getPrototypeOf(TopMenuLayout.prototype), 'destroy', this).call(this);
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            this._width = game.renderer.width - MARGIN_HONRIZONTAL$1 * 2;
+            this._height = game.renderer.height - this.y - MARGIN_VERTICAL$1;
+            get(TopMenuLayout.prototype.__proto__ || Object.getPrototypeOf(TopMenuLayout.prototype), 'update', this).call(this, game);
+        }
+    }, {
+        key: 'getWidth',
+        value: function getWidth() {
+            return this._width;
+        }
+    }, {
+        key: 'getHeight',
+        value: function getHeight() {
+            return this._height;
+        }
+    }]);
+    return TopMenuLayout;
 }(UpdatableContainer);
 
 var AbsCardArea = function (_LinearLayout) {
@@ -2177,6 +2439,12 @@ var Game = function () {
         /** @type {AbsCardArea} */
         this.river = null;
 
+        i18n.setup(options.langs);
+
+        this.tokenCount = 54960;
+        this.originalBetCount = 100;
+        this.betCount = 100;
+
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
 
@@ -2236,8 +2504,12 @@ var Game = function () {
             this.river = new CardRiverArea(stageWidth / 2, stageHeight / 4 * 2);
             this.fg.addChild(this.river);
             var contextualBox = new GUIContext(0, stageHeight * 5 / 6, this);
+            var topMenu = new TopMenuLayout(0, 0, this);
+
             this.fg.addChild(contextualBox);
+            this.fg.addChild(topMenu);
             contextualBox.update(this);
+            topMenu.update(this);
             this.clearBoard();
             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
         }
@@ -2280,7 +2552,9 @@ var Game = function () {
         key: 'displayCardCursorSelection',
         value: function displayCardCursorSelection() {
             var p = this.river.getCardAt(0);
-            this.gui.addChild(new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25));
+            var cursor = new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25);
+            cursor.setCursorCardIndex(this, 0);
+            this.gui.addChild(cursor);
         }
     }, {
         key: 'setState',
@@ -2293,6 +2567,8 @@ var Game = function () {
             this.playingGameState = state;
             switch (state) {
                 case Game.STATE_PLAYING_CHOOSE_CARDS:
+                    this.betCount = this.originalBetCount;
+                    this.tokenCount -= this.originalBetCount;
                     Tracker.track('game:new');
                     this.gui.destroyChildren();
                     this.fg.findChildrenByType(GUIContext).displayControls();
@@ -2302,14 +2578,17 @@ var Game = function () {
                     break;
                 case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
                     this.commitChanges();
-                    var combo = this.getCardComboList().getHigherCombo();
-                    combo.getCards().forEach(function (d) {
-                        d.highlight();
-                    });
-                    Tracker.track('combo', {
-                        type: combo.getTypeName(),
-                        cards: combo.getCards().map(String)
-                    });
+                    var combo = this.getCardComboList().getHigherCombo() || null;
+                    if (combo) {
+                        combo.getCards().forEach(function (d) {
+                            d.highlight();
+                        });
+                        Tracker.track('combo', {
+                            type: combo.getTypeName(),
+                            cards: combo.getCards().map(String)
+                        });
+                        this.betCount = this.originalBetCount * combo.type;
+                    }
                     this.fg.findChildrenByType(GUIContext).displayCombo(combo);
                     this.gui.addChild(new GUIScoreLayout({
                         playerCombo: combo,
@@ -2389,10 +2668,13 @@ var Game = function () {
                 } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
                     var scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
                     if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                        if (scoreLayout.playerCombo.type > 2) {
-                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
-                        } else {
+                        if (!scoreLayout.playerCombo || scoreLayout.playerCombo.type < 2) {
+                            if (scoreLayout.playerCombo) {
+                                this.tokenCount += this.betCount;
+                            }
                             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                        } else {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
                         }
                     }
                 }
@@ -2462,10 +2744,10 @@ Game.STATE_PLAYING_CHOOSE_RISK = 16;
 Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 32;
 Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 64;
 
-var version = "0.0.4-PRE-Alpha";
+var version = "0.0.5-PRE-Alpha";
 
 Game.VERSION = version;
-Game.BUILD_TIME = '01-19-2017 00:20:52';
+Game.BUILD_TIME = '01-19-2017 23:40:22';
 
 Tracker.track('pageview');
 

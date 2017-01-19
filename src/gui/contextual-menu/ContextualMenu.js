@@ -1,4 +1,4 @@
-import ContextualBox from './ContextualBox';
+import ContextualBox from '../ContextualBox';
 import Rect from '../../lib/Rect';
 import GUICursor from './GUICursor';
 import LinearLayout from '../LinearLayout';
