@@ -6,6 +6,303 @@
 
 PIXI$1 = 'default' in PIXI$1 ? PIXI$1['default'] : PIXI$1;
 
+var keyboardState = new Map();
+var lastKeyboardState = new Map();
+var Keyboard = {
+  0: 48,
+  1: 49,
+  2: 50,
+  3: 51,
+  4: 52,
+  5: 53,
+  6: 54,
+  7: 55,
+  8: 56,
+  9: 57,
+  BACKSPACE: 8,
+  TAB: 9,
+  ENTER: 13,
+  SHIFT: 16,
+  CTRL: 17,
+  ALT: 18,
+  PAUSE: 19,
+  CAPS_LOCK: 20,
+  ESCAPE: 27,
+  SPACE: 32,
+  PAGE_UP: 33,
+  PAGE_DOWN: 34,
+  END: 35,
+  HOME: 36,
+  LEFT_ARROW: 37,
+  UP_ARROW: 38,
+  RIGHT_ARROW: 39,
+  DOWN_ARROW: 40,
+  INSERT: 45,
+  DELETE: 46,
+  A: 65,
+  B: 66,
+  C: 67,
+  D: 68,
+  E: 69,
+  F: 70,
+  G: 71,
+  H: 72,
+  I: 73,
+  J: 74,
+  K: 75,
+  L: 76,
+  M: 77,
+  N: 78,
+  O: 79,
+  P: 80,
+  Q: 81,
+  R: 82,
+  S: 83,
+  T: 84,
+  U: 85,
+  V: 86,
+  W: 87,
+  X: 88,
+  Y: 89,
+  Z: 90,
+  LEFT_WINDOW_KEY: 91,
+  RIGHT_WINDOW_KEY: 92,
+  SELECT_KEY: 93,
+  NUMPAD_0: 96,
+  NUMPAD_1: 97,
+  NUMPAD_2: 98,
+  NUMPAD_3: 99,
+  NUMPAD_4: 100,
+  NUMPAD_5: 101,
+  NUMPAD_6: 102,
+  NUMPAD_7: 103,
+  NUMPAD_8: 104,
+  NUMPAD_9: 105,
+  MULTIPLY: 106,
+  ADD: 107,
+  SUBTRACT: 109,
+  DECIMAL_POINT: 110,
+  DIVIDE: 111,
+  F1: 112,
+  F2: 113,
+  F3: 114,
+  F4: 115,
+  F5: 116,
+  F6: 117,
+  F7: 118,
+  F8: 119,
+  F9: 120,
+  F10: 121,
+  F11: 122,
+  F12: 123,
+  NUM_LOCK: 144,
+  SCROLL_LOCK: 145,
+  SEMI_COLON: 186,
+  EQUAL_SIGN: 187,
+  COMMA: 188,
+  DASH: 189,
+  PERIOD: 190,
+  FORWARD_SLASH: 191,
+  GRAVE_ACCENT: 192,
+  OPEN_BRACKET: 219,
+  BACK_SLASH: 220,
+  CLOSE_BRAKET: 221,
+  SINGLE_QUOTE: 222,
+  isKeyDown: function isKeyDown(keyCode) {
+    return !!keyboardState.get(keyCode);
+  },
+  isKeyUp: function isKeyUp(keyCode) {
+    return !keyboardState.get(keyCode);
+  },
+  isKeyReleased: function isKeyReleased(keyCode) {
+    return Keyboard.isKeyUp(keyCode) && lastKeyboardState.get(keyCode);
+  },
+  isKeyPushed: function isKeyPushed(keyCode) {
+    return Keyboard.isKeyDown(keyCode) && !lastKeyboardState.get(keyCode);
+  },
+  update: function update() {
+    lastKeyboardState = keyboardState;
+    keyboardState = new Map(lastKeyboardState);
+  }
+};
+// Keep state of all action
+window.addEventListener('keyup', function (event) {
+  keyboardState.set(event.keyCode, false);
+});
+window.addEventListener('keydown', function (event) {
+  keyboardState.set(event.keyCode, true);
+});
+
+var isMe = !!localStorage.getItem('isMe');
+var stopTracking = !!localStorage.getItem('StopTracking') || /localhost\:8080/.test(location.toString()) || typeof mixpanel === 'undefined';
+
+if (stopTracking) console.log('stop-tracking');
+
+if (isMe) {
+    mixpanel.identify('1');
+}
+
+var Tracker = {
+    /**
+     * @param {String} eventName
+     * @param {Object} properties
+     * @param {Function} callback
+     */
+    track: function track(eventName, properties, callback) {
+        if (stopTracking) return;
+        mixpanel.track(eventName, properties, callback);
+    }
+};
+
+var CardsGenerator = {
+    CARD_WIDTH: 370 / 4,
+    CARD_HEIGHT: 522 / 4,
+    JOKER: 'Joker',
+    JOKER_VALUE: 13,
+    SUITS: ['Spades', 'Hearts', 'Diamonds', 'Clubs'],
+    VALUE_LABELS: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'],
+    generateCards: function generateCards() {
+        var output = [];
+        for (var suitIndex = 0; suitIndex < CardsGenerator.SUITS.length; suitIndex++) {
+            for (var valueIndex = 0; valueIndex < CardsGenerator.VALUE_LABELS.length; valueIndex++) {
+                output.push(new Card({
+                    width: CardsGenerator.CARD_WIDTH,
+                    height: CardsGenerator.CARD_HEIGHT,
+                    suit: suitIndex,
+                    value: valueIndex
+                }));
+            }
+        }
+        for (var index = 0; index < 2; index++) {
+            output.push(new Card({
+                width: CardsGenerator.CARD_WIDTH,
+                height: CardsGenerator.CARD_HEIGHT,
+                suit: CardsGenerator.JOKER,
+                value: CardsGenerator.JOKER_VALUE
+            }));
+        }
+        return new CardCollection(output);
+    }
+};
+
+/**
+ * https://github.com/gre/bezier-easing
+ * BezierEasing - use bezier curve for transition easing function
+ * by Gaëtan Renaudeau 2014 - 2015 – MIT License
+ */
+
+// These values are established by empiricism with tests (tradeoff: performance VS precision)
+var NEWTON_ITERATIONS = 4;
+var NEWTON_MIN_SLOPE = 0.001;
+var SUBDIVISION_PRECISION = 0.0000001;
+var SUBDIVISION_MAX_ITERATIONS = 10;
+
+var kSplineTableSize = 11;
+var kSampleStepSize = 1.0 / (kSplineTableSize - 1.0);
+
+var float32ArraySupported = typeof Float32Array === 'function';
+
+function A(aA1, aA2) {
+    return 1.0 - 3.0 * aA2 + 3.0 * aA1;
+}
+
+function B(aA1, aA2) {
+    return 3.0 * aA2 - 6.0 * aA1;
+}
+
+function C(aA1) {
+    return 3.0 * aA1;
+}
+
+// Returns x(t) given t, x1, and x2, or y(t) given t, y1, and y2.
+function calcBezier(aT, aA1, aA2) {
+    return ((A(aA1, aA2) * aT + B(aA1, aA2)) * aT + C(aA1)) * aT;
+}
+
+// Returns dx/dt given t, x1, and x2, or dy/dt given t, y1, and y2.
+function getSlope(aT, aA1, aA2) {
+    return 3.0 * A(aA1, aA2) * aT * aT + 2.0 * B(aA1, aA2) * aT + C(aA1);
+}
+
+function binarySubdivide(aX, aA, aB, mX1, mX2) {
+    var currentX,
+        currentT,
+        i = 0;
+    do {
+        currentT = aA + (aB - aA) / 2.0;
+        currentX = calcBezier(currentT, mX1, mX2) - aX;
+        if (currentX > 0.0) {
+            aB = currentT;
+        } else {
+            aA = currentT;
+        }
+    } while (Math.abs(currentX) > SUBDIVISION_PRECISION && ++i < SUBDIVISION_MAX_ITERATIONS);
+    return currentT;
+}
+
+function newtonRaphsonIterate(aX, aGuessT, mX1, mX2) {
+    for (var i = 0; i < NEWTON_ITERATIONS; ++i) {
+        var currentSlope = getSlope(aGuessT, mX1, mX2);
+        if (currentSlope === 0.0) {
+            return aGuessT;
+        }
+        var currentX = calcBezier(aGuessT, mX1, mX2) - aX;
+        aGuessT -= currentX / currentSlope;
+    }
+    return aGuessT;
+}
+
+function bezier(mX1, mY1, mX2, mY2) {
+    if (!(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)) {
+        throw new Error('bezier x values must be in [0, 1] range');
+    }
+
+    // Precompute samples table
+    var sampleValues = float32ArraySupported ? new Float32Array(kSplineTableSize) : new Array(kSplineTableSize);
+    if (mX1 !== mY1 || mX2 !== mY2) {
+        for (var i = 0; i < kSplineTableSize; ++i) {
+            sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
+        }
+    }
+
+    function getTForX(aX) {
+        var intervalStart = 0.0;
+        var currentSample = 1;
+        var lastSample = kSplineTableSize - 1;
+
+        for (; currentSample !== lastSample && sampleValues[currentSample] <= aX; ++currentSample) {
+            intervalStart += kSampleStepSize;
+        }--currentSample;
+
+        // Interpolate to provide an initial guess for t
+        var dist = (aX - sampleValues[currentSample]) / (sampleValues[currentSample + 1] - sampleValues[currentSample]);
+        var guessForT = intervalStart + dist * kSampleStepSize;
+
+        var initialSlope = getSlope(guessForT, mX1, mX2);
+        if (initialSlope >= NEWTON_MIN_SLOPE) {
+            return newtonRaphsonIterate(aX, guessForT, mX1, mX2);
+        } else if (initialSlope === 0.0) {
+            return guessForT;
+        } else {
+            return binarySubdivide(aX, intervalStart, intervalStart + kSampleStepSize, mX1, mX2);
+        }
+    }
+
+    return function BezierEasing(x) {
+        if (mX1 === mY1 && mX2 === mY2) {
+            return x; // linear
+        }
+        // Because JavaScript number are imprecise, we should guarantee the extremes are right.
+        if (x === 0) {
+            return 0;
+        }
+        if (x === 1) {
+            return 1;
+        }
+        return calcBezier(getTForX(x), mY1, mY2);
+    };
+}
+
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
@@ -159,182 +456,6 @@ var toConsumableArray = function (arr) {
   }
 };
 
-var UpdatableContainer = function (_PIXI$Container) {
-    inherits(UpdatableContainer, _PIXI$Container);
-
-    function UpdatableContainer() {
-        classCallCheck(this, UpdatableContainer);
-        return possibleConstructorReturn(this, (UpdatableContainer.__proto__ || Object.getPrototypeOf(UpdatableContainer)).apply(this, arguments));
-    }
-
-    createClass(UpdatableContainer, [{
-        key: 'update',
-        value: function update(game) {
-            this.updateChildren(game);
-        }
-    }, {
-        key: 'destroyChildren',
-        value: function destroyChildren() {
-            this.children.forEach(function (d) {
-                return d.destroy();
-            });
-            this.removeChildren();
-        }
-    }, {
-        key: 'updateChildren',
-        value: function updateChildren(game) {
-            this.children.forEach(function (child) {
-                child.update(game);
-            });
-        }
-
-        /**
-         * @param {Function} Type
-         * @returns {PIXI.DisplayObject}
-         */
-
-    }, {
-        key: 'findChildrenByType',
-        value: function findChildrenByType(Type) {
-            return this.children.find(function (d) {
-                return d instanceof Type;
-            });
-        }
-
-        /**
-         * @param {Function} Type
-         * @returns {PIXI.DisplayObject[]}
-         */
-
-    }, {
-        key: 'findAllChildByType',
-        value: function findAllChildByType(Type) {
-            return this.children.filter(function (d) {
-                return d instanceof Type;
-            });
-        }
-    }]);
-    return UpdatableContainer;
-}(PIXI$1.Container);
-
-/**
- * https://github.com/gre/bezier-easing
- * BezierEasing - use bezier curve for transition easing function
- * by Gaëtan Renaudeau 2014 - 2015 – MIT License
- */
-
-// These values are established by empiricism with tests (tradeoff: performance VS precision)
-var NEWTON_ITERATIONS = 4;
-var NEWTON_MIN_SLOPE = 0.001;
-var SUBDIVISION_PRECISION = 0.0000001;
-var SUBDIVISION_MAX_ITERATIONS = 10;
-
-var kSplineTableSize = 11;
-var kSampleStepSize = 1.0 / (kSplineTableSize - 1.0);
-
-var float32ArraySupported = typeof Float32Array === 'function';
-
-function A(aA1, aA2) {
-    return 1.0 - 3.0 * aA2 + 3.0 * aA1;
-}
-
-function B(aA1, aA2) {
-    return 3.0 * aA2 - 6.0 * aA1;
-}
-
-function C(aA1) {
-    return 3.0 * aA1;
-}
-
-// Returns x(t) given t, x1, and x2, or y(t) given t, y1, and y2.
-function calcBezier(aT, aA1, aA2) {
-    return ((A(aA1, aA2) * aT + B(aA1, aA2)) * aT + C(aA1)) * aT;
-}
-
-// Returns dx/dt given t, x1, and x2, or dy/dt given t, y1, and y2.
-function getSlope(aT, aA1, aA2) {
-    return 3.0 * A(aA1, aA2) * aT * aT + 2.0 * B(aA1, aA2) * aT + C(aA1);
-}
-
-function binarySubdivide(aX, aA, aB, mX1, mX2) {
-    var currentX,
-        currentT,
-        i = 0;
-    do {
-        currentT = aA + (aB - aA) / 2.0;
-        currentX = calcBezier(currentT, mX1, mX2) - aX;
-        if (currentX > 0.0) {
-            aB = currentT;
-        } else {
-            aA = currentT;
-        }
-    } while (Math.abs(currentX) > SUBDIVISION_PRECISION && ++i < SUBDIVISION_MAX_ITERATIONS);
-    return currentT;
-}
-
-function newtonRaphsonIterate(aX, aGuessT, mX1, mX2) {
-    for (var i = 0; i < NEWTON_ITERATIONS; ++i) {
-        var currentSlope = getSlope(aGuessT, mX1, mX2);
-        if (currentSlope === 0.0) {
-            return aGuessT;
-        }
-        var currentX = calcBezier(aGuessT, mX1, mX2) - aX;
-        aGuessT -= currentX / currentSlope;
-    }
-    return aGuessT;
-}
-
-function bezier(mX1, mY1, mX2, mY2) {
-    if (!(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)) {
-        throw new Error('bezier x values must be in [0, 1] range');
-    }
-
-    // Precompute samples table
-    var sampleValues = float32ArraySupported ? new Float32Array(kSplineTableSize) : new Array(kSplineTableSize);
-    if (mX1 !== mY1 || mX2 !== mY2) {
-        for (var i = 0; i < kSplineTableSize; ++i) {
-            sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
-        }
-    }
-
-    function getTForX(aX) {
-        var intervalStart = 0.0;
-        var currentSample = 1;
-        var lastSample = kSplineTableSize - 1;
-
-        for (; currentSample !== lastSample && sampleValues[currentSample] <= aX; ++currentSample) {
-            intervalStart += kSampleStepSize;
-        }--currentSample;
-
-        // Interpolate to provide an initial guess for t
-        var dist = (aX - sampleValues[currentSample]) / (sampleValues[currentSample + 1] - sampleValues[currentSample]);
-        var guessForT = intervalStart + dist * kSampleStepSize;
-
-        var initialSlope = getSlope(guessForT, mX1, mX2);
-        if (initialSlope >= NEWTON_MIN_SLOPE) {
-            return newtonRaphsonIterate(aX, guessForT, mX1, mX2);
-        } else if (initialSlope === 0.0) {
-            return guessForT;
-        } else {
-            return binarySubdivide(aX, intervalStart, intervalStart + kSampleStepSize, mX1, mX2);
-        }
-    }
-
-    return function BezierEasing(x) {
-        if (mX1 === mY1 && mX2 === mY2) {
-            return x; // linear
-        }
-        // Because JavaScript number are imprecise, we should guarantee the extremes are right.
-        if (x === 0) {
-            return 0;
-        }
-        if (x === 1) {
-            return 1;
-        }
-        return calcBezier(getTForX(x), mY1, mY2);
-    };
-}
-
 var Card = function (_PIXI$Graphics) {
   inherits(Card, _PIXI$Graphics);
 
@@ -353,12 +474,12 @@ var Card = function (_PIXI$Graphics) {
     _this.drawBackground();
     var valueText = new PIXI$1.Text(_this.getValue(), {
       fontSize: 26,
-      textColor: 0,
+      fill: 0xd8d8d8,
       align: 'center'
     });
     var suitText = new PIXI$1.Text(_this.getSuit(), {
       fontSize: 14,
-      textColor: 0,
+      fill: 0xd8d8d8,
       align: 'center'
     });
     _this.isHighlighted = false;
@@ -567,37 +688,6 @@ var CardCollection = function () {
     return CardCollection;
 }();
 
-var CardsGenerator = {
-    CARD_WIDTH: 370 / 4,
-    CARD_HEIGHT: 522 / 4,
-    JOKER: 'Joker',
-    JOKER_VALUE: 13,
-    SUITS: ['Spades', 'Hearts', 'Diamonds', 'Clubs'],
-    VALUE_LABELS: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'],
-    generateCards: function generateCards() {
-        var output = [];
-        for (var suitIndex = 0; suitIndex < CardsGenerator.SUITS.length; suitIndex++) {
-            for (var valueIndex = 0; valueIndex < CardsGenerator.VALUE_LABELS.length; valueIndex++) {
-                output.push(new Card({
-                    width: CardsGenerator.CARD_WIDTH,
-                    height: CardsGenerator.CARD_HEIGHT,
-                    suit: suitIndex,
-                    value: valueIndex
-                }));
-            }
-        }
-        for (var index = 0; index < 2; index++) {
-            output.push(new Card({
-                width: CardsGenerator.CARD_WIDTH,
-                height: CardsGenerator.CARD_HEIGHT,
-                suit: CardsGenerator.JOKER,
-                value: CardsGenerator.JOKER_VALUE
-            }));
-        }
-        return new CardCollection(output);
-    }
-};
-
 function _identity(d) {
   return d;
 }
@@ -631,11 +721,17 @@ var Numbers = {
             return 0;
         }
     },
+    /**
+     * @param {number} value the value to clamp
+     * @param {number} min
+     * @param {number} max
+     */
     clamp: function clamp(value, min, max) {
         return Math.max(Math.min(value, max), min);
     }
 };
 
+/** @type {Object.<string, number>} */
 var ComboType = {
     Pair: 1,
     TwoPair: 2,
@@ -648,7 +744,12 @@ var ComboType = {
     RoyalFlush: 50,
     FiveOfAKind: 100
 };
-
+/**
+ * @property {Function}
+ * @name ComboType.forName
+ * @param {Number} type
+ * @returns {String}
+*/
 Object.defineProperty(ComboType, 'forName', {
     enumerable: false,
     value: function forName(type) {
@@ -722,6 +823,8 @@ var CardComboList = function () {
             // 9 - StraightFlush
             var straightFlushCombo = this._getStraightFlush();
             if (straightFlushCombo) this.add(straightFlushCombo);
+
+            // todo: royalFlush
 
             this.combos.sort(function (a, b) {
                 return Numbers.Compare.desc(a.getScore(), b.getScore());
@@ -882,7 +985,9 @@ var CardCombo = function () {
     function CardCombo(object) {
         classCallCheck(this, CardCombo);
 
+        /** @type {number} */
         this.type = object.type;
+        /** @type {CardCollection} */
         this.cards = new CardCollection();
         if (object.cards) this.cards.addAll(object.cards);else if (object.card) this.cards.add(object.card);
         this.getCards().sort(function (a, b) {
@@ -890,16 +995,31 @@ var CardCombo = function () {
         });
     }
 
+    /**
+     * @returns {Card}
+     */
+
+
     createClass(CardCombo, [{
         key: 'getCard',
         value: function getCard() {
             return this.cards.peek();
         }
+        /**
+         * @returns {CardCollection}
+         */
+
     }, {
         key: 'getCards',
         value: function getCards() {
             return this.cards.cards;
         }
+
+        /**
+         * @private
+         * @returns {CardCollection}
+         */
+
     }, {
         key: '_sortCards',
         value: function _sortCards() {
@@ -907,6 +1027,11 @@ var CardCombo = function () {
                 return Numbers.Compare.asc(a.suit, b.suit);
             });
         }
+
+        /**
+         * @returns {String}
+         */
+
     }, {
         key: 'getId',
         value: function getId() {
@@ -915,20 +1040,31 @@ var CardCombo = function () {
                 return d.value + '&' + d.suit;
             }).join('/');
         }
+
+        /**
+         * @returns {number}
+         */
+
     }, {
         key: 'getScore',
         value: function getScore() {
-            var cards = this.getCards();
-            var out = 0;
-            for (var index = 0; index < cards.length; index++) {
-                out += cards[index].value;
-            }return out + this.type * 10;
+            return this.type;
         }
+
+        /**
+         * @returns {String}
+         */
+
     }, {
         key: 'getTypeName',
         value: function getTypeName() {
             return ComboType.forName(this.type);
         }
+
+        /**
+         * @returns {String}
+         */
+
     }, {
         key: 'toString',
         value: function toString() {
@@ -937,6 +1073,100 @@ var CardCombo = function () {
     }]);
     return CardCombo;
 }();
+
+var languages = [];
+var currentLang = null;
+
+var i18n = {
+    setup: function setup(langs) {
+        languages = langs;
+        currentLang = languages[0];
+    },
+    setLang: function setLang(lang) {
+        currentLang = languages.find(function (d) {
+            return d.Lang === lang;
+        });
+    },
+    t: function t(chainedName) {
+        var names = chainedName.split('.');
+        var currentObject = currentLang;
+        for (var index = 0; index < names.length; index++) {
+            var keyName = names[index];
+            if (keyName in currentObject) {
+                if (_typeof(currentObject[keyName]) !== 'object') {
+                    return currentObject[keyName];
+                } else {
+                    currentObject = currentObject[keyName];
+                }
+            }
+        }
+        return '';
+    }
+};
+
+var UpdatableContainer = function (_PIXI$Container) {
+    inherits(UpdatableContainer, _PIXI$Container);
+
+    function UpdatableContainer() {
+        classCallCheck(this, UpdatableContainer);
+        return possibleConstructorReturn(this, (UpdatableContainer.__proto__ || Object.getPrototypeOf(UpdatableContainer)).apply(this, arguments));
+    }
+
+    createClass(UpdatableContainer, [{
+        key: 'update',
+        value: function update(game) {
+            this.updateChildren(game);
+        }
+    }, {
+        key: 'destroyChildren',
+        value: function destroyChildren() {
+            this.children.forEach(function (d) {
+                return d.destroy();
+            });
+            this.removeChildren();
+        }
+
+        /**
+         * Invoke update method of all children
+         * @param {Game} game
+         */
+
+    }, {
+        key: 'updateChildren',
+        value: function updateChildren(game) {
+            this.children.forEach(function (child) {
+                child.update(game);
+            });
+        }
+
+        /**
+         * @param {Function} Type
+         * @returns {PIXI.DisplayObject}
+         */
+
+    }, {
+        key: 'findChildrenByType',
+        value: function findChildrenByType(Type) {
+            return this.children.find(function (d) {
+                return d instanceof Type;
+            });
+        }
+
+        /**
+         * @param {Function} Type
+         * @returns {PIXI.DisplayObject[]}
+         */
+
+    }, {
+        key: 'findAllChildByType',
+        value: function findAllChildByType(Type) {
+            return this.children.filter(function (d) {
+                return d instanceof Type;
+            });
+        }
+    }]);
+    return UpdatableContainer;
+}(PIXI$1.Container);
 
 var LinearLayout = function (_UpdatableContainer) {
     inherits(LinearLayout, _UpdatableContainer);
@@ -1017,189 +1247,39 @@ var LinearLayout = function (_UpdatableContainer) {
 LinearLayout.ORIENTATION_VERTICAL = 1;
 LinearLayout.ORIENTATION_HORIZONTAL = 2;
 
-var Debug = {
-    textConfig: {
-        fontSize: 14,
-        fontFamily: 'Consolas',
-        fill: 0
-    }
+var Score = {
+    LOST: 0,
+    DRAW: 1,
+    WON: 2
 };
 
-var BigText = {
-    textConfig: {
-        fontSize: 72,
-        fontFamily: 'Verdana',
-        fill: 0xffff00,
-        stroke: 0xef0000,
-        strokeThickness: 8,
-        fontVariant: 'small-caps',
-        fontWeight: 900
+var Resolver = {
+
+    /**
+     * @param {Card} card1
+     * @param {Card} card2
+     */
+    compareCards: function compareCards(card1, card2) {
+        if (card1 && !card2) return Score.WON;
+        if (!card1 && card2) return Score.LOST;
+        if (card1.value > card2.value) return Score.WON;
+        if (card1.value < card2.value) return Score.LOST;
+        return Score.DRAW;
+    },
+
+
+    /**
+     * @param {CardCombo} combo1
+     * @param {CardCombo} combo2
+     */
+    compareCombos: function compareCombos(combo1, combo2) {
+        if (combo1 && !combo2) return Score.WON;
+        if (!combo1 && combo2) return Score.LOST;
+        if (combo1.getScore() > combo2.getScore()) return Score.WON;
+        if (combo1.getScore() < combo2.getScore()) return Score.LOST;
+        return Score.DRAW;
     }
 };
-
-var GuiText = {
-    textConfig: {
-        fontSize: 16,
-        fontFamily: 'Verdana',
-        fill: 0xffffff,
-        stroke: 0,
-        strokeThickness: 3,
-        fontWeight: 300
-    }
-};
-
-var GuiToken = {
-    textConfig: {
-        fontSize: 20,
-        fontFamily: 'Verdana',
-        fill: 0xffffff,
-        letterSpacing: 4
-    }
-};
-
-var GUICombosList = function (_PIXI$Text) {
-    inherits(GUICombosList, _PIXI$Text);
-
-    function GUICombosList() {
-        classCallCheck(this, GUICombosList);
-        return possibleConstructorReturn(this, (GUICombosList.__proto__ || Object.getPrototypeOf(GUICombosList)).call(this, '', Debug.textConfig));
-    }
-
-    createClass(GUICombosList, [{
-        key: 'update',
-        value: function update(game) {
-            this.text = game.getCardComboList().toString();
-        }
-    }]);
-    return GUICombosList;
-}(PIXI$1.Text);
-
-var keyboardState = new Map();
-var lastKeyboardState = new Map();
-var Keyboard = {
-  0: 48,
-  1: 49,
-  2: 50,
-  3: 51,
-  4: 52,
-  5: 53,
-  6: 54,
-  7: 55,
-  8: 56,
-  9: 57,
-  BACKSPACE: 8,
-  TAB: 9,
-  ENTER: 13,
-  SHIFT: 16,
-  CTRL: 17,
-  ALT: 18,
-  PAUSE: 19,
-  CAPS_LOCK: 20,
-  ESCAPE: 27,
-  SPACE: 32,
-  PAGE_UP: 33,
-  PAGE_DOWN: 34,
-  END: 35,
-  HOME: 36,
-  LEFT_ARROW: 37,
-  UP_ARROW: 38,
-  RIGHT_ARROW: 39,
-  DOWN_ARROW: 40,
-  INSERT: 45,
-  DELETE: 46,
-  A: 65,
-  B: 66,
-  C: 67,
-  D: 68,
-  E: 69,
-  F: 70,
-  G: 71,
-  H: 72,
-  I: 73,
-  J: 74,
-  K: 75,
-  L: 76,
-  M: 77,
-  N: 78,
-  O: 79,
-  P: 80,
-  Q: 81,
-  R: 82,
-  S: 83,
-  T: 84,
-  U: 85,
-  V: 86,
-  W: 87,
-  X: 88,
-  Y: 89,
-  Z: 90,
-  LEFT_WINDOW_KEY: 91,
-  RIGHT_WINDOW_KEY: 92,
-  SELECT_KEY: 93,
-  NUMPAD_0: 96,
-  NUMPAD_1: 97,
-  NUMPAD_2: 98,
-  NUMPAD_3: 99,
-  NUMPAD_4: 100,
-  NUMPAD_5: 101,
-  NUMPAD_6: 102,
-  NUMPAD_7: 103,
-  NUMPAD_8: 104,
-  NUMPAD_9: 105,
-  MULTIPLY: 106,
-  ADD: 107,
-  SUBTRACT: 109,
-  DECIMAL_POINT: 110,
-  DIVIDE: 111,
-  F1: 112,
-  F2: 113,
-  F3: 114,
-  F4: 115,
-  F5: 116,
-  F6: 117,
-  F7: 118,
-  F8: 119,
-  F9: 120,
-  F10: 121,
-  F11: 122,
-  F12: 123,
-  NUM_LOCK: 144,
-  SCROLL_LOCK: 145,
-  SEMI_COLON: 186,
-  EQUAL_SIGN: 187,
-  COMMA: 188,
-  DASH: 189,
-  PERIOD: 190,
-  FORWARD_SLASH: 191,
-  GRAVE_ACCENT: 192,
-  OPEN_BRACKET: 219,
-  BACK_SLASH: 220,
-  CLOSE_BRAKET: 221,
-  SINGLE_QUOTE: 222,
-  isKeyDown: function isKeyDown(keyCode) {
-    return !!keyboardState.get(keyCode);
-  },
-  isKeyUp: function isKeyUp(keyCode) {
-    return !keyboardState.get(keyCode);
-  },
-  isKeyReleased: function isKeyReleased(keyCode) {
-    return Keyboard.isKeyUp(keyCode) && lastKeyboardState.get(keyCode);
-  },
-  isKeyPushed: function isKeyPushed(keyCode) {
-    return Keyboard.isKeyDown(keyCode) && !lastKeyboardState.get(keyCode);
-  },
-  update: function update() {
-    lastKeyboardState = keyboardState;
-    keyboardState = new Map(lastKeyboardState);
-  }
-};
-// Keep state of all action
-window.addEventListener('keyup', function (event) {
-  keyboardState.set(event.keyCode, false);
-});
-window.addEventListener('keydown', function (event) {
-  keyboardState.set(event.keyCode, true);
-});
 
 var GUICardSelector = function (_PIXI$Graphics) {
     inherits(GUICardSelector, _PIXI$Graphics);
@@ -1435,57 +1515,160 @@ var GUIText = function (_PIXI$Text) {
     return GUIText;
 }(PIXI$1.Text);
 
-var isMe = !!localStorage.getItem('isMe');
-var stopTracking = !!localStorage.getItem('StopTracking') || /localhost\:8080/.test(location.toString()) || typeof mixpanel === 'undefined';
-
-if (stopTracking) console.log('stop-tracking');
-
-if (isMe) {
-    mixpanel.identify('1');
-}
-
-var Tracker = {
-    /**
-     * @param {String} eventName
-     * @param {Object} properties
-     * @param {Function} callback
-     */
-    track: function track(eventName, properties, callback) {
-        if (stopTracking) return;
-        mixpanel.track(eventName, properties, callback);
+var BigText = {
+    textConfig: {
+        fontSize: 72,
+        fontFamily: 'Verdana',
+        fill: 0xffff00,
+        stroke: 0xef0000,
+        strokeThickness: 8,
+        fontVariant: 'small-caps',
+        fontWeight: 900
     }
 };
 
-var languages = [];
-var currentLang = null;
+var GuiText = {
+    textConfig: {
+        fontSize: 16,
+        fontFamily: 'Verdana',
+        fill: 0xffffff,
+        stroke: 0,
+        strokeThickness: 3,
+        fontWeight: 300
+    }
+};
 
-var i18n = {
-    setup: function setup(langs) {
-        languages = langs;
-        currentLang = languages[0];
-    },
-    t: function t(chainedName) {
-        var names = chainedName.split('.');
-        var currentObject = currentLang;
-        for (var index = 0; index < names.length; index++) {
-            var keyName = names[index];
-            if (keyName in currentObject) {
-                if (_typeof(currentObject[keyName]) !== 'object') {
-                    return currentObject[keyName];
-                } else {
-                    currentObject = currentObject[keyName];
-                }
+var GuiToken = {
+    textConfig: {
+        fontSize: 20,
+        fontFamily: 'Verdana',
+        fill: 0xffffff,
+        letterSpacing: 4
+    }
+};
+
+var AbsScoreLayout = function (_UpdatableContainer) {
+    inherits(AbsScoreLayout, _UpdatableContainer);
+
+    /**
+     * @param {Object} options
+     * @param {number} options.score - The score
+     */
+    function AbsScoreLayout(options) {
+        classCallCheck(this, AbsScoreLayout);
+
+        /** @type {number} */
+        var _this = possibleConstructorReturn(this, (AbsScoreLayout.__proto__ || Object.getPrototypeOf(AbsScoreLayout)).call(this));
+
+        _this.score = options.score;
+        _this.transitionDuration = options.transitionDuration || 150;
+        _this.transitionDelay = options.transitionDelay || 1000;
+
+        /** @type {number} */
+        _this._lastScoreState = 0;
+        /** @type {number} */
+        _this.scoreState = AbsScoreLayout.STATE_TRANSITION_IDLE;
+        /** @type {boolean} */
+        _this.isDestroyed = false;
+        /** @type {number} */
+        _this.rendererWidth = options.game.renderer.width;
+        /** @type {number} */
+        _this.rendererHeight = options.game.renderer.height;
+        return _this;
+    }
+
+    createClass(AbsScoreLayout, [{
+        key: 'changeState',
+        value: function changeState(state) {
+            this._lastScoreState = this.scoreState;
+            this.scoreState = state;
+        }
+
+        /**
+         * Update children initial positions
+         * @protected
+         */
+
+    }, {
+        key: 'mUpdateChildrenPosition',
+        value: function mUpdateChildrenPosition() {
+            for (var index = 0; index < this.children.length; index++) {
+                var child = this.children[index];
+                child.x = this.rendererWidth * 3 / 4 + child.width / 2 + 1;
+                child.y = this.rendererHeight / 3;
+                child.alpha = 0;
             }
         }
-        return '';
-    }
-};
+    }, {
+        key: 'hasWon',
+        value: function hasWon() {
+            return this.score === Score.WON;
+        }
+    }, {
+        key: 'hasLost',
+        value: function hasLost() {
+            return this.score === Score.LOST;
+        }
+    }, {
+        key: 'isDraw',
+        value: function isDraw() {
+            return this.score === Score.DRAW;
+        }
+    }, {
+        key: 'spawnComparison',
+        value: function spawnComparison() {
+            var comparisonLabel = i18n.t('Defeat');
+            if (this.hasWon()) {
+                comparisonLabel = i18n.t('Victory');
+            } else if (this.isDraw()) {
+                comparisonLabel = i18n.t('Draw');
+            }
+            this.addChild(new GUIText(comparisonLabel, BigText.textConfig));
+        }
+    }, {
+        key: 'getInAnimation',
+        value: function getInAnimation(sprite, _callback) {
+            return new TransformAnimation({
+                posFrom: new PIXI.Point(sprite.x, sprite.y),
+                posTo: new PIXI.Point(this.rendererWidth / 2 - sprite.width / 2, sprite.y),
+                alphaFrom: 0,
+                alphaTo: 1,
+                duration: this.transitionDuration,
+                callback: function callback() {
+                    sprite.setAnimation(null);
+                    if (_callback) _callback();
+                }
+            });
+        }
+    }, {
+        key: 'getOutAnimation',
+        value: function getOutAnimation(sprite, _callback2) {
+            return new TransformAnimation({
+                posFrom: new PIXI.Point(sprite.x, sprite.y),
+                posTo: new PIXI.Point(this.rendererWidth * 1 / 6 - sprite.width / 2, sprite.y),
+                alphaFrom: 1,
+                alphaTo: 0,
+                duration: this.transitionDuration,
+                callback: function callback() {
+                    sprite.setAnimation(null);
+                    if (_callback2) _callback2();
+                }
+            });
+        }
+    }]);
+    return AbsScoreLayout;
+}(UpdatableContainer);
 
-var TRANSITION_DURATION = 150;
-var TRANSITION_DELAY = 1000;
 
-var GUIScoreLayout = function (_UpdatableContainer) {
-    inherits(GUIScoreLayout, _UpdatableContainer);
+
+AbsScoreLayout.STATE_TRANSITION_IDLE = 0;
+AbsScoreLayout.STATE_TRANSITION_SUIT = 1;
+AbsScoreLayout.STATE_TRANSITION_COMPARISON = 2;
+AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING = 4;
+AbsScoreLayout.STATE_TRANSITION_TERMINATED = 8;
+
+var GUIScoreLayout = function (_AbsScoreLayout) {
+    inherits(GUIScoreLayout, _AbsScoreLayout);
 
     /**
      * @param {Object} options
@@ -1497,31 +1680,18 @@ var GUIScoreLayout = function (_UpdatableContainer) {
         classCallCheck(this, GUIScoreLayout);
 
         /** @type {CardCombo} */
-        var _this = possibleConstructorReturn(this, (GUIScoreLayout.__proto__ || Object.getPrototypeOf(GUIScoreLayout)).call(this));
+        var _this = possibleConstructorReturn(this, (GUIScoreLayout.__proto__ || Object.getPrototypeOf(GUIScoreLayout)).call(this, {
+            score: Resolver.compareCombos(options.playerCombo, options.iaCombo),
+            game: options.game
+        }));
 
         _this.playerCombo = options.playerCombo;
         /** @type {CardCombo} */
-        _this.iaCombo = options.iaCombo || new CardCombo(ComboType.Pair);
+        _this.iaCombo = options.iaCombo;
 
         _this.spawnSuitName();
         _this.spawnComparison();
-
-        /** @type {number} */
-        _this.rendererWidth = options.game.renderer.width;
-        /** @type {number} */
-        _this.rendererHeight = options.game.renderer.height;
-        for (var index = 0; index < _this.children.length; index++) {
-            var child = _this.children[index];
-            child.x = _this.rendererWidth * 3 / 4 + child.width / 2 + 1;
-            child.y = _this.rendererHeight / 3;
-            child.alpha = 0;
-        }
-        /** @type {number} */
-        _this._lastScoreState = 0;
-        /** @type {number} */
-        _this.scoreState = GUIScoreLayout.STATE_TRANSITION_IDLE;
-        /** @type {boolean} */
-        _this.isDestroyed = false;
+        _this.mUpdateChildrenPosition();
         return _this;
     }
 
@@ -1539,21 +1709,6 @@ var GUIScoreLayout = function (_UpdatableContainer) {
             this.addChild(new GUIText(i18n.t('ComboType.' + comboName), BigText.textConfig));
         }
     }, {
-        key: 'spawnComparison',
-        value: function spawnComparison() {
-            //const iaScore = this.iaCombo.getScore();
-            var iaScore = ComboType.Pair;
-            var playerScore = this.playerCombo ? this.playerCombo.type : 0;
-            console.log('playerScore: %s, iaScore: %s', playerScore, iaScore);
-            var comparisonLabel = i18n.t('Defeat');
-            if (playerScore > iaScore) {
-                comparisonLabel = i18n.t('Victory');
-            } else if (playerScore === iaScore) {
-                comparisonLabel = i18n.t('Draw');
-            }
-            this.addChild(new GUIText(comparisonLabel, BigText.textConfig));
-        }
-    }, {
         key: 'getSuitText',
         value: function getSuitText() {
             return this.getChildAt(0);
@@ -1564,82 +1719,100 @@ var GUIScoreLayout = function (_UpdatableContainer) {
             return this.getChildAt(1);
         }
     }, {
-        key: 'changeState',
-        value: function changeState(state) {
-            this._lastScoreState = this.scoreState;
-            this.scoreState = state;
-        }
-    }, {
         key: 'update',
         value: function update(game) {
             var _this2 = this;
 
             get(GUIScoreLayout.prototype.__proto__ || Object.getPrototypeOf(GUIScoreLayout.prototype), 'update', this).call(this, game);
             switch (this.scoreState) {
-                case GUIScoreLayout.STATE_TRANSITION_IDLE:
+                case AbsScoreLayout.STATE_TRANSITION_IDLE:
                     this.getSuitText().setAnimation(this.getInAnimation(this.getSuitText(), function () {
                         setTimeout(function () {
-                            if (!_this2.isDestroyed) _this2.changeState(GUIScoreLayout.STATE_TRANSITION_COMPARISON);
-                        }, TRANSITION_DELAY);
+                            if (!_this2.isDestroyed) _this2.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON);
+                        }, _this2.transitionDelay);
                     }));
-                    this.changeState(GUIScoreLayout.STATE_TRANSITION_SUIT);
+                    this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
                     break;
-                case GUIScoreLayout.STATE_TRANSITION_COMPARISON:
+                case AbsScoreLayout.STATE_TRANSITION_COMPARISON:
                     this.getComparisonText().setAnimation(this.getInAnimation(this.getComparisonText(), function () {
                         setTimeout(function () {
-                            if (!_this2.isDestroyed) _this2.changeState(GUIScoreLayout.STATE_TRANSITION_COMPARISON_ENDING);
-                        }, TRANSITION_DELAY);
+                            if (!_this2.isDestroyed) _this2.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING);
+                        }, _this2.transitionDelay);
                     }));
                     this.getSuitText().setAnimation(this.getOutAnimation(this.getSuitText()));
-                    this.changeState(GUIScoreLayout.STATE_TRANSITION_SUIT);
+                    this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
                     break;
-                case GUIScoreLayout.STATE_TRANSITION_COMPARISON_ENDING:
+                case AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING:
                     this.getComparisonText().setAnimation(this.getOutAnimation(this.getComparisonText(), function () {
-                        _this2.changeState(GUIScoreLayout.STATE_TRANSITION_TERMINATED);
+                        _this2.changeState(AbsScoreLayout.STATE_TRANSITION_TERMINATED);
                     }));
-                    this.changeState(GUIScoreLayout.STATE_TRANSITION_SUIT);
+                    this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
                     break;
             }
         }
-    }, {
-        key: 'getInAnimation',
-        value: function getInAnimation(sprite, _callback) {
-            return new TransformAnimation({
-                posFrom: new PIXI$1.Point(sprite.x, sprite.y),
-                posTo: new PIXI$1.Point(this.rendererWidth / 2 - sprite.width / 2, sprite.y),
-                alphaFrom: 0,
-                alphaTo: 1,
-                duration: TRANSITION_DURATION,
-                callback: function callback() {
-                    sprite.setAnimation(null);
-                    if (_callback) _callback();
-                }
-            });
-        }
-    }, {
-        key: 'getOutAnimation',
-        value: function getOutAnimation(sprite, _callback2) {
-            return new TransformAnimation({
-                posFrom: new PIXI$1.Point(sprite.x, sprite.y),
-                posTo: new PIXI$1.Point(this.rendererWidth * 1 / 6 - sprite.width / 2, sprite.y),
-                alphaFrom: 1,
-                alphaTo: 0,
-                duration: TRANSITION_DURATION,
-                callback: function callback() {
-                    sprite.setAnimation(null);
-                    if (_callback2) _callback2();
-                }
-            });
-        }
     }]);
     return GUIScoreLayout;
-}(UpdatableContainer);
+}(AbsScoreLayout);
 
-GUIScoreLayout.STATE_TRANSITION_IDLE = 0;
-GUIScoreLayout.STATE_TRANSITION_SUIT = 1;
-GUIScoreLayout.STATE_TRANSITION_COMPARISON = 2;
-GUIScoreLayout.STATE_TRANSITION_COMPARISON_ENDING = 4;
-GUIScoreLayout.STATE_TRANSITION_TERMINATED = 8;
+var GUIBetScore = function (_AbsScoreLayout) {
+    inherits(GUIBetScore, _AbsScoreLayout);
+
+    /**
+     * @param {Object} options
+     * @param {Game} options.game
+     * @param {CardCombo} options.playerCombo
+     * @param {CardCombo} options.iaCombo
+     */
+    function GUIBetScore(options) {
+        classCallCheck(this, GUIBetScore);
+
+        var _this = possibleConstructorReturn(this, (GUIBetScore.__proto__ || Object.getPrototypeOf(GUIBetScore)).call(this, options));
+
+        _this.spawnComparison();
+        _this.mUpdateChildrenPosition();
+        return _this;
+    }
+
+    createClass(GUIBetScore, [{
+        key: 'destroy',
+        value: function destroy() {
+            get(GUIBetScore.prototype.__proto__ || Object.getPrototypeOf(GUIBetScore.prototype), 'destroy', this).call(this);
+            this.isDestroyed = true;
+        }
+    }, {
+        key: 'getComparisonText',
+        value: function getComparisonText() {
+            return this.getChildAt(0);
+        }
+    }, {
+        key: 'update',
+        value: function update(game) {
+            var _this2 = this;
+
+            get(GUIBetScore.prototype.__proto__ || Object.getPrototypeOf(GUIBetScore.prototype), 'update', this).call(this, game);
+            switch (this.scoreState) {
+                case AbsScoreLayout.STATE_TRANSITION_IDLE:
+                    this.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON);
+                    break;
+                case AbsScoreLayout.STATE_TRANSITION_COMPARISON:
+                    this.getComparisonText().setAnimation(this.getInAnimation(this.getComparisonText(), function () {
+                        setTimeout(function () {
+                            if (!_this2.isDestroyed) _this2.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING);
+                        }, _this2.transitionDelay);
+                    }));
+                    this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
+                    break;
+                case AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING:
+                    this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
+                    this.getComparisonText().setAnimation(this.getOutAnimation(this.getComparisonText(), function () {
+                        _this2.changeState(AbsScoreLayout.STATE_TRANSITION_TERMINATED);
+                    }));
+                    break;
+            }
+        }
+    }]);
+    return GUIBetScore;
+}(AbsScoreLayout);
 
 var ContextualBox = function (_PIXI$Graphics) {
     inherits(ContextualBox, _PIXI$Graphics);
@@ -1834,6 +2007,18 @@ var ContextualDisplayer = function (_ContextualBox) {
             texts.y = texts.height / 2;
             this.addChild(texts);
         }
+    }, {
+        key: 'displayUpOrDownChoice',
+        value: function displayUpOrDownChoice() {
+            this.removeChildren();
+            var textStyleWhite = {
+                fontSize: 18,
+                fill: 0xffffff,
+                stroke: 0,
+                strokeThickness: 4
+            };
+            this.addChild(new PIXI.Text(i18n.t('Bet.UpOrDown'), textStyleWhite));
+        }
     }]);
     return ContextualDisplayer;
 }(ContextualBox);
@@ -1930,7 +2115,7 @@ var ContextualMenu = function (_ContextualBox) {
             if (index >= menuItems.length) index = 0;
             var position = this.getChildAt(0).getChildPositionAt(index);
             this.currentCursor.y = position.y;
-            this.currentCursor.x = position.x - 15;
+            if (this.currentCursor.x == 0) this.currentCursor.x = position.x - 15;
             this.currentCursorIndex = index;
         }
     }, {
@@ -2033,8 +2218,21 @@ var GUIContext = function (_UpdatableContainer) {
             }]);
         }
     }, {
-        key: 'displayMenu',
-        value: function displayMenu() {}
+        key: 'displayUpOrDownChoice',
+        value: function displayUpOrDownChoice(_callback) {
+            this.getChildAt(0).displayUpOrDownChoice();
+            this.getChildAt(1).displayMenu([{
+                label: i18n.t('Bet.Up'),
+                callback: function callback() {
+                    return _callback('up');
+                }
+            }, {
+                label: i18n.t('Bet.Down'),
+                callback: function callback() {
+                    return _callback('down');
+                }
+            }]);
+        }
     }]);
     return GUIContext;
 }(UpdatableContainer);
@@ -2269,6 +2467,9 @@ var AbsCardArea = function (_LinearLayout) {
         return _this;
     }
 
+    /** @inheritdoc */
+
+
     createClass(AbsCardArea, [{
         key: 'destroyChildren',
         value: function destroyChildren() {
@@ -2378,6 +2579,11 @@ var AbsCardArea = function (_LinearLayout) {
             this.updateChildrenPosition();
             return get(AbsCardArea.prototype.__proto__ || Object.getPrototypeOf(AbsCardArea.prototype), 'addChild', this).call(this, card);
         }
+
+        /**
+         * Update all children position
+         */
+
     }, {
         key: 'updateChildrenPosition',
         value: function updateChildrenPosition() {
@@ -2404,6 +2610,10 @@ var AbsCardArea = function (_LinearLayout) {
 var CardRiverArea = function (_AbsCardArea) {
     inherits(CardRiverArea, _AbsCardArea);
 
+    /**
+     * @param {number} x
+     * @param {number} y
+     */
     function CardRiverArea(x, y) {
         classCallCheck(this, CardRiverArea);
 
@@ -2412,6 +2622,12 @@ var CardRiverArea = function (_AbsCardArea) {
         _this.selectedCardsToBeChanged = [];
         return _this;
     }
+
+    /**
+     * @param {number} index
+     * @param {boolean} swt
+     */
+
 
     createClass(CardRiverArea, [{
         key: 'setSelectedCardIndex',
@@ -2425,6 +2641,17 @@ var CardRiverArea = function (_AbsCardArea) {
         }
     }]);
     return CardRiverArea;
+}(AbsCardArea);
+
+var CardBetArea = function (_AbsCardArea) {
+    inherits(CardBetArea, _AbsCardArea);
+
+    function CardBetArea(x, y) {
+        classCallCheck(this, CardBetArea);
+        return possibleConstructorReturn(this, (CardBetArea.__proto__ || Object.getPrototypeOf(CardBetArea)).call(this, x, y, 2));
+    }
+
+    return CardBetArea;
 }(AbsCardArea);
 
 var ticker = PIXI.ticker.shared; //new PIXI.ticker.Ticker();
@@ -2474,6 +2701,11 @@ var Game = function () {
     }
 
     createClass(Game, [{
+        key: 'setLanguage',
+        value: function setLanguage(lang) {
+            i18n.setLang(lang);
+        }
+    }, {
         key: 'destroy',
         value: function destroy() {
             this.clearGame();
@@ -2502,7 +2734,11 @@ var Game = function () {
             var stageWidth = this.renderer.width;
             var stageHeight = this.renderer.height;
             this.river = new CardRiverArea(stageWidth / 2, stageHeight / 4 * 2);
+            this.betRiver = new CardBetArea(stageWidth / 2, stageHeight / 4 * 2);
+            this.river.visible = false;
+            this.betRiver.visible = false;
             this.fg.addChild(this.river);
+            this.fg.addChild(this.betRiver);
             var contextualBox = new GUIContext(0, stageHeight * 5 / 6, this);
             var topMenu = new TopMenuLayout(0, 0, this);
 
@@ -2520,9 +2756,17 @@ var Game = function () {
             if (this.cards) this.cards.destroy();
             this.cards = CardsGenerator.generateCards().shuffle();
         }
+
+        /**
+         * @param {number} count
+         * @param {AbsCardArea} cardArea
+         */
+
     }, {
         key: 'distribute',
         value: function distribute(count) {
+            var cardArea = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.river;
+
 
             // const forcedCards = 0;
             // [ 3, 2, 1, 0, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
@@ -2544,7 +2788,7 @@ var Game = function () {
 
             for (var index = 0; index < count; index++) {
                 var card = this.cards.peek();
-                this.river.addCard(card);
+                cardArea.addCard(card);
                 this.cards.remove(card);
             }
         }
@@ -2567,6 +2811,8 @@ var Game = function () {
             this.playingGameState = state;
             switch (state) {
                 case Game.STATE_PLAYING_CHOOSE_CARDS:
+                    this.river.visible = true;
+                    this.betRiver.visible = false;
                     this.betCount = this.originalBetCount;
                     this.tokenCount -= this.originalBetCount;
                     Tracker.track('game:new');
@@ -2579,6 +2825,9 @@ var Game = function () {
                 case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
                     this.commitChanges();
                     var combo = this.getCardComboList().getHigherCombo() || null;
+                    var iaCombo = new CardCombo({ type: ComboType.Pair });
+
+                    var score = Resolver.compareCombos(combo, iaCombo);
                     if (combo) {
                         combo.getCards().forEach(function (d) {
                             d.highlight();
@@ -2587,11 +2836,14 @@ var Game = function () {
                             type: combo.getTypeName(),
                             cards: combo.getCards().map(String)
                         });
-                        this.betCount = this.originalBetCount * combo.type;
+                        if (Score.WON === score) {
+                            this.betCount = this.originalBetCount * combo.type;
+                        }
                     }
                     this.fg.findChildrenByType(GUIContext).displayCombo(combo);
                     this.gui.addChild(new GUIScoreLayout({
                         playerCombo: combo,
+                        iaCombo: iaCombo,
                         game: this
                     }));
 
@@ -2600,8 +2852,38 @@ var Game = function () {
                     this.gui.destroyChildren();
                     this.fg.findChildrenByType(GUIContext).displayChooseBet();
                     break;
+                case Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN:
+                    this.river.visible = false;
+                    this.betRiver.visible = true;
+                    this.betRiver.destroyChildren();
+                    this.distribute(1, this.betRiver);
+                    this.fg.findChildrenByType(GUIContext).displayUpOrDownChoice(this._onBetChoiceDone.bind(this));
+                    break;
 
             }
+        }
+    }, {
+        key: '_onBetChoiceDone',
+        value: function _onBetChoiceDone(choice) {
+            this.distribute(1, this.betRiver);
+            var firstCard = this.betRiver.getCardAt(0);
+            var lastCard = this.betRiver.getCardAt(1);
+
+            if (choice == 'up' && firstCard.value < lastCard.value || choice == 'down' && firstCard.value > lastCard.value) {
+                this.betCount *= 2;
+                this.displayBetScore(Score.WON);
+            } else {
+                this.displayBetScore(Score.LOST);
+            }
+            this.setPlayingState(Game.STATE_PLAYING_DISPLAY_BET_SCORE);
+        }
+    }, {
+        key: 'displayBetScore',
+        value: function displayBetScore(score) {
+            this.gui.addChild(new GUIBetScore({
+                game: this,
+                score: score
+            }));
         }
     }, {
         key: 'getFPS',
@@ -2665,11 +2947,21 @@ var Game = function () {
                     if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
                         this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
                     }
+                } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_BET_SCORE) {
+
+                    var scoreLayout = this.gui.findChildrenByType(GUIBetScore);
+                    if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        if (scoreLayout.hasWon()) {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                        } else {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                        }
+                    }
                 } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-                    var scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
-                    if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                        if (!scoreLayout.playerCombo || scoreLayout.playerCombo.type < 2) {
-                            if (scoreLayout.playerCombo) {
+                    var _scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
+                    if (_scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        if (!_scoreLayout.playerCombo || _scoreLayout.playerCombo.type < 2) {
+                            if (_scoreLayout.playerCombo) {
                                 this.tokenCount += this.betCount;
                             }
                             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
@@ -2738,16 +3030,17 @@ Game.STATE_GAMEOVER = 4;
 
 Game.STATE_PLAYING_CHOOSE_BET = 1;
 Game.STATE_PLAYING_CHOOSE_CARDS = 2;
-Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 4;
-Game.STATE_PLAYING_DISPLAY_RIVER_SCORE = 8;
-Game.STATE_PLAYING_CHOOSE_RISK = 16;
-Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 32;
-Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 64;
+Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 3;
+Game.STATE_PLAYING_DISPLAY_RIVER_SCORE = 4;
+Game.STATE_PLAYING_CHOOSE_RISK = 5;
+Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 6;
+Game.STATE_PLAYING_DISPLAY_BET_SCORE = 7;
+Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 8;
 
-var version = "0.0.5-PRE-Alpha";
+var version = "0.0.7-PRE-Alpha";
 
 Game.VERSION = version;
-Game.BUILD_TIME = '01-19-2017 23:40:22';
+Game.BUILD_TIME = '01-20-2017 22:12:01';
 
 Tracker.track('pageview');
 

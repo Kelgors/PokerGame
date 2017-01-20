@@ -10,6 +10,10 @@ export default class UpdatableContainer extends PIXI.Container {
         this.removeChildren();
     }
 
+    /**
+     * Invoke update method of all children
+     * @param {Game} game
+     */
     updateChildren(game) {
         this.children.forEach(function (child) { 
             child.update(game); 

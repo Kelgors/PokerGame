@@ -66,8 +66,18 @@ export default class GUIContext extends UpdatableContainer {
         ]);
     }
 
-    displayMenu() {
-
+    displayUpOrDownChoice(callback) {
+        this.getChildAt(0).displayUpOrDownChoice();
+        this.getChildAt(1).displayMenu([
+            {
+                label: i18n.t('Bet.Up'),
+                callback: () => callback('up')
+            },
+            {
+                label: i18n.t('Bet.Down'),
+                callback: () => callback('down')
+            }
+        ]);
     }
 
 }

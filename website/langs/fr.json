@@ -29,6 +29,9 @@
     },
     "Bet": {
         "Bet": "MISER",
-        "ChooseBet": "Voulez-vous *doubler* votre mise ?"
+        "ChooseBet": "Voulez-vous *doubler* votre mise ?",
+        "UpOrDown": "*SUPÉRIEURE* ou *INFÉRIEURE*",
+        "Up": "SUP.",
+        "Down": "INF."
     }
 }

@@ -25,6 +25,7 @@ export default class AbsCardArea extends LinearLayout {
         this.updateLayoutPivot();
     }
 
+    /** @inheritdoc */
     destroyChildren() {
         this.slots = new Array(this.cardSlots);
         return super.destroyChildren();
@@ -111,6 +112,9 @@ export default class AbsCardArea extends LinearLayout {
         return super.addChild(card);
     }
 
+    /**
+     * Update all children position
+     */
     updateChildrenPosition() {
         let pos = 0;
         for (let index = 0; index < this.cardSlots; index++) {

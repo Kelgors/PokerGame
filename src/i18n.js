@@ -8,6 +8,9 @@ export default {
         languages = langs;
         currentLang = languages[0];
     },
+    setLang(lang) {
+        currentLang = languages.find((d) => d.Lang === lang);
+    },
     t(chainedName) {
         const names = chainedName.split('.');
         let currentObject = currentLang;

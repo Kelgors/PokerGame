@@ -16,12 +16,12 @@ export default class Card extends PIXI.Graphics {
     this.drawBackground();
     const valueText = new PIXI.Text(this.getValue(), {
       fontSize: 26,
-      textColor: 0,
+      fill: 0xd8d8d8,
       align: 'center',
     });
     const suitText = new PIXI.Text(this.getSuit(), {
       fontSize: 14,
-      textColor: 0,
+      fill: 0xd8d8d8,
       align: 'center'
     });
     this.isHighlighted = false;

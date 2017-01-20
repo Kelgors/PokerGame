@@ -124,4 +124,15 @@ export default class ContextualDisplayer extends ContextualBox {
         this.addChild(texts);
     }
 
+    displayUpOrDownChoice() {
+        this.removeChildren();
+        const textStyleWhite = {
+            fontSize: 18,
+            fill: 0xffffff,
+            stroke: 0,
+            strokeThickness: 4
+        };
+        this.addChild(new PIXI.Text(i18n.t('Bet.UpOrDown'), textStyleWhite));
+    }
+
 }

@@ -11,6 +11,11 @@ export default {
             return 0;
         }
     },
+    /**
+     * @param {number} value the value to clamp
+     * @param {number} min
+     * @param {number} max
+     */
     clamp(value, min, max) {
         return Math.max(Math.min(value, max), min);
     }

@@ -1,23 +1,25 @@
-import UpdatableContainer from './containers/UpdatableContainer';
-import CardsGenerator from './CardsGenerator';
-import {CardComboList} from './CardComboList';
-import LinearLayout from './gui/LinearLayout';
-import GUICombosList from './gui/debug/GUICombosList';
-import GUICardSelector from './gui/GUICardSelector';
 import Keyboard from './lib/Keyboard';
-import GUIText from './lib/GUIText';
 import Tracker from './Tracker';
+import i18n from './i18n';
 
+import UpdatableContainer from './containers/UpdatableContainer';
+import LinearLayout from './gui/LinearLayout';
+
+import CardCollection from './CardCollection';
+import CardsGenerator from './CardsGenerator';
+import {CardComboList,CardCombo,ComboType} from './CardComboList';
+import {Resolver,Score} from './Score';
+
+import GUICardSelector from './gui/GUICardSelector';
+import AbsScoreLayout from './gui/AbsScoreLayout';
 import GUIScoreLayout from './gui/GUIScoreLayout';
+import GUIBetScore from './gui/GUIBetScore';
 import GUIContext from './gui/GUIContext';
 import TopMenuLayout from './gui/TopMenuLayout';
 
-import CardCollection from './CardCollection';
-
 import AbsCardArea from './containers/AbsCardArea';
 import CardRiverArea from './containers/CardRiverArea';
-
-import i18n from './i18n';
+import CardBetArea from './containers/CardBetArea';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 
@@ -64,6 +66,10 @@ export default class Game {
         this.setSize(this.renderer.width, this.renderer.height);
     }
 
+    setLanguage(lang) {
+        i18n.setLang(lang);
+    }
+
     destroy() {
         this.clearGame();
         this.fg.destroy();
@@ -89,7 +95,11 @@ export default class Game {
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
         this.river = new CardRiverArea(stageWidth/2, stageHeight/4*2);
+        this.betRiver = new CardBetArea(stageWidth/2, stageHeight/4*2);
+        this.river.visible = false;
+        this.betRiver.visible = false;
         this.fg.addChild(this.river);
+        this.fg.addChild(this.betRiver);
         const contextualBox = new GUIContext(0, stageHeight * 5/6, this);
         const topMenu = new TopMenuLayout(0, 0, this);
 
@@ -108,7 +118,11 @@ export default class Game {
         this.cards = CardsGenerator.generateCards().shuffle();
     }
 
-    distribute(count) {
+    /**
+     * @param {number} count
+     * @param {AbsCardArea} cardArea
+     */
+    distribute(count, cardArea = this.river) {
         
         // const forcedCards = 0;
         // [ 3, 2, 1, 0, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
@@ -130,7 +144,7 @@ export default class Game {
 
         for (let index = 0; index < count; index++) {
             let card = this.cards.peek();
-            this.river.addCard(card);
+            cardArea.addCard(card);
             this.cards.remove(card);
         }
     }
@@ -150,6 +164,8 @@ export default class Game {
         this.playingGameState = state;
         switch (state) {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
+                this.river.visible = true;
+                this.betRiver.visible = false;
                 this.betCount = this.originalBetCount;
                 this.tokenCount -= this.originalBetCount;
                 Tracker.track('game:new');
@@ -162,6 +178,9 @@ export default class Game {
             case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
                 this.commitChanges();
                 const combo = this.getCardComboList().getHigherCombo() || null;
+                const iaCombo = new CardCombo({ type: ComboType.Pair });
+
+                const score = Resolver.compareCombos(combo, iaCombo);
                 if (combo) {
                     combo.getCards().forEach(function (d) {
                         d.highlight();
@@ -170,11 +189,14 @@ export default class Game {
                         type: combo.getTypeName(),
                         cards: combo.getCards().map(String)
                     });
-                    this.betCount = this.originalBetCount * combo.type;
+                    if (Score.WON === score) {
+                        this.betCount = this.originalBetCount * combo.type;
+                    }
                 }
                 this.fg.findChildrenByType(GUIContext).displayCombo(combo);
                 this.gui.addChild(new GUIScoreLayout({
                     playerCombo: combo,
+                    iaCombo: iaCombo,
                     game: this
                 }));
                 
@@ -183,8 +205,36 @@ export default class Game {
                 this.gui.destroyChildren();
                 this.fg.findChildrenByType(GUIContext).displayChooseBet();
                 break;
-            
+            case Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN:
+                this.river.visible = false;
+                this.betRiver.visible = true;
+                this.betRiver.destroyChildren();
+                this.distribute(1, this.betRiver);
+                this.fg.findChildrenByType(GUIContext).displayUpOrDownChoice(this._onBetChoiceDone.bind(this));
+                break;
+
         }
+    }
+
+    _onBetChoiceDone(choice) {
+        this.distribute(1, this.betRiver);
+        const firstCard = this.betRiver.getCardAt(0);
+        const lastCard = this.betRiver.getCardAt(1);
+
+        if ((choice == 'up' && firstCard.value < lastCard.value) || (choice == 'down' && firstCard.value > lastCard.value)) {
+            this.betCount *= 2;
+            this.displayBetScore(Score.WON);
+        } else {
+            this.displayBetScore(Score.LOST);
+        }
+        this.setPlayingState(Game.STATE_PLAYING_DISPLAY_BET_SCORE);
+    }
+
+    displayBetScore(score) {
+        this.gui.addChild(new GUIBetScore({
+            game: this,
+            score: score
+        }));
     }
 
     getFPS() {
@@ -240,9 +290,20 @@ export default class Game {
                 if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
                     this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
                 }
+            } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_BET_SCORE) {
+
+                let scoreLayout = this.gui.findChildrenByType(GUIBetScore);
+                if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                    if (scoreLayout.hasWon()) {
+                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                    } else {
+                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                    }
+                }
+
             } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-                let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);  
-                if (scoreLayout.scoreState === GUIScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
+                if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
                     if (!scoreLayout.playerCombo || scoreLayout.playerCombo.type < 2) {
                         if (scoreLayout.playerCombo) {
                             this.tokenCount += this.betCount;
@@ -304,9 +365,10 @@ Game.STATE_GAMEOVER = 4;
 
 Game.STATE_PLAYING_CHOOSE_BET = 1;
 Game.STATE_PLAYING_CHOOSE_CARDS = 2;
-Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 4;
-Game.STATE_PLAYING_DISPLAY_RIVER_SCORE = 8;
-Game.STATE_PLAYING_CHOOSE_RISK = 16;
-Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 32;
-Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 64;
+Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 3;
+Game.STATE_PLAYING_DISPLAY_RIVER_SCORE = 4;
+Game.STATE_PLAYING_CHOOSE_RISK = 5;
+Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN = 6;
+Game.STATE_PLAYING_DISPLAY_BET_SCORE = 7;
+Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 8;
 

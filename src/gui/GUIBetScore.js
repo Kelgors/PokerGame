@@ -8,7 +8,7 @@ import GUIText from '../lib/GUIText';
 import {Resolver} from '../Score';
 import {CardCombo, ComboType} from '../CardComboList';
 
-export default class GUIScoreLayout extends AbsScoreLayout {
+export default class GUIBetScore extends AbsScoreLayout {
 
     /**
      * @param {Object} options
@@ -17,16 +17,7 @@ export default class GUIScoreLayout extends AbsScoreLayout {
      * @param {CardCombo} options.iaCombo
      */
     constructor(options) {
-        super({
-            score: Resolver.compareCombos(options.playerCombo, options.iaCombo),
-            game: options.game
-        });
-        /** @type {CardCombo} */
-        this.playerCombo = options.playerCombo;
-        /** @type {CardCombo} */
-        this.iaCombo = options.iaCombo;
-
-        this.spawnSuitName();
+        super(options);
         this.spawnComparison();
         this.mUpdateChildrenPosition();
     }
@@ -36,30 +27,15 @@ export default class GUIScoreLayout extends AbsScoreLayout {
         this.isDestroyed = true;
     }
 
-    spawnSuitName() {
-        let comboName = 'NoCombo';
-        if (this.playerCombo) comboName = this.playerCombo.getTypeName();
-        this.addChild(new GUIText(i18n.t('ComboType.' + comboName), BigText.textConfig));
-    }
-
-    getSuitText() {
-        return this.getChildAt(0);
-    }
-
     getComparisonText() {
-        return this.getChildAt(1);
+        return this.getChildAt(0);
     }
 
     update(game) {
         super.update(game);
         switch (this.scoreState) {
             case AbsScoreLayout.STATE_TRANSITION_IDLE:
-                this.getSuitText().setAnimation(this.getInAnimation(this.getSuitText(), () => {
-                    setTimeout(() => {
-                        if (!this.isDestroyed) this.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON);
-                    }, this.transitionDelay);
-                }));
-                this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
+                this.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON);
                 break;
             case AbsScoreLayout.STATE_TRANSITION_COMPARISON:
                 this.getComparisonText().setAnimation(this.getInAnimation(this.getComparisonText(), () => {
@@ -67,14 +43,13 @@ export default class GUIScoreLayout extends AbsScoreLayout {
                         if (!this.isDestroyed) this.changeState(AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING);
                     }, this.transitionDelay);
                 }));
-                this.getSuitText().setAnimation(this.getOutAnimation(this.getSuitText()));
                 this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
                 break;
             case AbsScoreLayout.STATE_TRANSITION_COMPARISON_ENDING:
+                this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
                 this.getComparisonText().setAnimation(this.getOutAnimation(this.getComparisonText(), () => {
                     this.changeState(AbsScoreLayout.STATE_TRANSITION_TERMINATED);
                 }));
-                this.changeState(AbsScoreLayout.STATE_TRANSITION_SUIT);
                 break;
         }
     }

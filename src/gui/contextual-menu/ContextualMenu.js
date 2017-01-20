@@ -62,7 +62,7 @@ export default class ContextualMenu extends ContextualBox {
         if (index >= menuItems.length) index = 0;
         const position = this.getChildAt(0).getChildPositionAt(index);
         this.currentCursor.y = position.y;
-        this.currentCursor.x = position.x - 15;
+        if (this.currentCursor.x == 0) this.currentCursor.x = position.x - 15;
         this.currentCursorIndex = index;
     }
     

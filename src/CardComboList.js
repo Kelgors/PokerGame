@@ -2,6 +2,7 @@ import CardCollection from './CardCollection';
 import Arrays from './Arrays';
 import Numbers from './Numbers';
 
+/** @type {Object.<string, number>} */
 export var ComboType = {
     Pair: 1,
     TwoPair: 2,
@@ -14,7 +15,12 @@ export var ComboType = {
     RoyalFlush: 50,
     FiveOfAKind: 100
 };
-
+/**
+ * @property {Function}
+ * @name ComboType.forName
+ * @param {Number} type
+ * @returns {String}
+*/
 Object.defineProperty(ComboType, 'forName', {
     enumerable: false,
     value: function forName(type) {
@@ -75,6 +81,8 @@ export class CardComboList {
         // 9 - StraightFlush
         const straightFlushCombo = this._getStraightFlush();
         if (straightFlushCombo) this.add(straightFlushCombo);
+
+        // todo: royalFlush
         
         this.combos.sort((a, b) => Numbers.Compare.desc(a.getScore(), b.getScore()));
     }
@@ -202,36 +210,57 @@ export class CardComboList {
 export class CardCombo {
 
     constructor(object) {
+        /** @type {number} */
         this.type = object.type;
+        /** @type {CardCollection} */
         this.cards = new CardCollection();
         if (object.cards) this.cards.addAll(object.cards);
         else if (object.card) this.cards.add(object.card);
         this.getCards().sort((a, b) => Numbers.Compare.asc(a.value, b.value));
     }
 
+    /**
+     * @returns {Card}
+     */
     getCard() { return this.cards.peek(); }
+    /**
+     * @returns {CardCollection}
+     */
     getCards() { return this.cards.cards; }
 
+    /**
+     * @private
+     * @returns {CardCollection}
+     */
     _sortCards() {
         this.getCards().sort((a, b) => { return Numbers.Compare.asc(a.suit, b.suit); });
     }
-    
+
+    /**
+     * @returns {String}
+     */
     getId() {
         this._sortCards();
         return this.getCards().map((d) => `${d.value}&${d.suit}`).join('/');
     }
 
+    /**
+     * @returns {number}
+     */
     getScore() {
-        const cards = this.getCards();
-        let out = 0;
-        for (let index = 0; index < cards.length; index++) out += cards[index].value;
-        return out + this.type * 10;
+        return this.type;
     }
 
+    /**
+     * @returns {String}
+     */
     getTypeName() {
         return ComboType.forName(this.type);
     }
 
+    /**
+     * @returns {String}
+     */
     toString() {
         return `${this.getTypeName()} { ${this.getCards().join(', ')} }`;
     }
