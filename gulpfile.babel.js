@@ -1,6 +1,7 @@
 import gulp from 'gulp';
 import './gulp/build-js';
 import './gulp/build-sass';
+import './gulp/build-assets';
 import './gulp/http';
 
 gulp.task('watch:js', function () {

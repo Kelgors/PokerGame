@@ -1,6 +1,7 @@
 import Keyboard from './lib/Keyboard';
 import Tracker from './Tracker';
 import i18n from './i18n';
+import Numbers from './Numbers';
 
 import UpdatableContainer from './containers/UpdatableContainer';
 import LinearLayout from './gui/LinearLayout';
@@ -34,12 +35,14 @@ export default class Game {
 
         i18n.setup(options.langs);
 
-        this.tokenCount = 54960;
+        this.tokenCount = 10000;
         this.originalBetCount = 100;
-        this.betCount = 100;
+        this.betCount = 0;
 
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
+
+        this.cardsGenerator = new CardsGenerator(options.cardTextures);
 
         this.fg = new UpdatableContainer();
         this.gui = new UpdatableContainer();
@@ -108,14 +111,18 @@ export default class Game {
         contextualBox.update(this);
         topMenu.update(this);
         this.clearBoard();
-        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
-          
+
     }
 
     clearBoard() {
-        this.river.destroyChildren();
+        this.river.clearCards();
         if (this.cards) this.cards.destroy();
-        this.cards = CardsGenerator.generateCards().shuffle();
+        this.cards = this.cardsGenerator.generateCards();
+        let iteration = Numbers.clamp(Math.floor(Math.random() * 14), 2, 14);
+        for (let index = 0; index < iteration; index++) {
+            this.cards.shuffle();
+        }
+        console.log('shuffle %s times', iteration);
     }
 
     /**
@@ -130,17 +137,17 @@ export default class Game {
         //     this.river.addChild(card);
         //     this.cards.remove(card);
         // }, this);
-        // // for (let i = 0; i < forcedCards; i++) {
-        // //     let card = this.cards.getByValue(2);
-        // //     if (i > 3) card = this.cards.getByValue(4);
-        // //     this.river.addChild(card)
-        // //     this.cards.remove(card);
-        // // }
-        // // for (let i = 0; i < forcedCards; i++) {
-        // //     let card = this.cards.getByValue(i + 1);
-        // //     this.river.addChild(card)
-        // //     this.cards.remove(card);
-        // // }
+        // for (let i = 0; i < forcedCards; i++) {
+        //     let card = this.cards.getByValue(2);
+        //     if (i > 3) card = this.cards.getByValue(4);
+        //     this.river.addChild(card)
+        //     this.cards.remove(card);
+        // }
+        // for (let i = 0; i < forcedCards; i++) {
+        //     let card = this.cards.getByValue(i + 1);
+        //     this.river.addChild(card)
+        //     this.cards.remove(card);
+        // }
 
         for (let index = 0; index < count; index++) {
             let card = this.cards.peek();
@@ -161,6 +168,7 @@ export default class Game {
     }
 
     setPlayingState(state) {
+        if (state === this.playingGameState) return;
         this.playingGameState = state;
         switch (state) {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
@@ -176,6 +184,7 @@ export default class Game {
                 this.displayCardCursorSelection();
                 break;
             case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
+                this.river.hideKeepTexts();
                 this.commitChanges();
                 const combo = this.getCardComboList().getHigherCombo() || null;
                 const iaCombo = new CardCombo({ type: ComboType.Pair });
@@ -254,10 +263,6 @@ export default class Game {
     }
 
     setSize(w, h) {
-        if (this.container) {
-            this.container.style.width = `${w}px`;
-            this.container.style.height = `${h}px`;
-        }
         if (this.renderer.width !== w || this.renderer.height !== h) {
             this.renderer.resize(w, h);
         }

@@ -154,155 +154,6 @@ var Tracker = {
     }
 };
 
-var CardsGenerator = {
-    CARD_WIDTH: 370 / 4,
-    CARD_HEIGHT: 522 / 4,
-    JOKER: 'Joker',
-    JOKER_VALUE: 13,
-    SUITS: ['Spades', 'Hearts', 'Diamonds', 'Clubs'],
-    VALUE_LABELS: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'],
-    generateCards: function generateCards() {
-        var output = [];
-        for (var suitIndex = 0; suitIndex < CardsGenerator.SUITS.length; suitIndex++) {
-            for (var valueIndex = 0; valueIndex < CardsGenerator.VALUE_LABELS.length; valueIndex++) {
-                output.push(new Card({
-                    width: CardsGenerator.CARD_WIDTH,
-                    height: CardsGenerator.CARD_HEIGHT,
-                    suit: suitIndex,
-                    value: valueIndex
-                }));
-            }
-        }
-        for (var index = 0; index < 2; index++) {
-            output.push(new Card({
-                width: CardsGenerator.CARD_WIDTH,
-                height: CardsGenerator.CARD_HEIGHT,
-                suit: CardsGenerator.JOKER,
-                value: CardsGenerator.JOKER_VALUE
-            }));
-        }
-        return new CardCollection(output);
-    }
-};
-
-/**
- * https://github.com/gre/bezier-easing
- * BezierEasing - use bezier curve for transition easing function
- * by Gaëtan Renaudeau 2014 - 2015 – MIT License
- */
-
-// These values are established by empiricism with tests (tradeoff: performance VS precision)
-var NEWTON_ITERATIONS = 4;
-var NEWTON_MIN_SLOPE = 0.001;
-var SUBDIVISION_PRECISION = 0.0000001;
-var SUBDIVISION_MAX_ITERATIONS = 10;
-
-var kSplineTableSize = 11;
-var kSampleStepSize = 1.0 / (kSplineTableSize - 1.0);
-
-var float32ArraySupported = typeof Float32Array === 'function';
-
-function A(aA1, aA2) {
-    return 1.0 - 3.0 * aA2 + 3.0 * aA1;
-}
-
-function B(aA1, aA2) {
-    return 3.0 * aA2 - 6.0 * aA1;
-}
-
-function C(aA1) {
-    return 3.0 * aA1;
-}
-
-// Returns x(t) given t, x1, and x2, or y(t) given t, y1, and y2.
-function calcBezier(aT, aA1, aA2) {
-    return ((A(aA1, aA2) * aT + B(aA1, aA2)) * aT + C(aA1)) * aT;
-}
-
-// Returns dx/dt given t, x1, and x2, or dy/dt given t, y1, and y2.
-function getSlope(aT, aA1, aA2) {
-    return 3.0 * A(aA1, aA2) * aT * aT + 2.0 * B(aA1, aA2) * aT + C(aA1);
-}
-
-function binarySubdivide(aX, aA, aB, mX1, mX2) {
-    var currentX,
-        currentT,
-        i = 0;
-    do {
-        currentT = aA + (aB - aA) / 2.0;
-        currentX = calcBezier(currentT, mX1, mX2) - aX;
-        if (currentX > 0.0) {
-            aB = currentT;
-        } else {
-            aA = currentT;
-        }
-    } while (Math.abs(currentX) > SUBDIVISION_PRECISION && ++i < SUBDIVISION_MAX_ITERATIONS);
-    return currentT;
-}
-
-function newtonRaphsonIterate(aX, aGuessT, mX1, mX2) {
-    for (var i = 0; i < NEWTON_ITERATIONS; ++i) {
-        var currentSlope = getSlope(aGuessT, mX1, mX2);
-        if (currentSlope === 0.0) {
-            return aGuessT;
-        }
-        var currentX = calcBezier(aGuessT, mX1, mX2) - aX;
-        aGuessT -= currentX / currentSlope;
-    }
-    return aGuessT;
-}
-
-function bezier(mX1, mY1, mX2, mY2) {
-    if (!(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)) {
-        throw new Error('bezier x values must be in [0, 1] range');
-    }
-
-    // Precompute samples table
-    var sampleValues = float32ArraySupported ? new Float32Array(kSplineTableSize) : new Array(kSplineTableSize);
-    if (mX1 !== mY1 || mX2 !== mY2) {
-        for (var i = 0; i < kSplineTableSize; ++i) {
-            sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
-        }
-    }
-
-    function getTForX(aX) {
-        var intervalStart = 0.0;
-        var currentSample = 1;
-        var lastSample = kSplineTableSize - 1;
-
-        for (; currentSample !== lastSample && sampleValues[currentSample] <= aX; ++currentSample) {
-            intervalStart += kSampleStepSize;
-        }--currentSample;
-
-        // Interpolate to provide an initial guess for t
-        var dist = (aX - sampleValues[currentSample]) / (sampleValues[currentSample + 1] - sampleValues[currentSample]);
-        var guessForT = intervalStart + dist * kSampleStepSize;
-
-        var initialSlope = getSlope(guessForT, mX1, mX2);
-        if (initialSlope >= NEWTON_MIN_SLOPE) {
-            return newtonRaphsonIterate(aX, guessForT, mX1, mX2);
-        } else if (initialSlope === 0.0) {
-            return guessForT;
-        } else {
-            return binarySubdivide(aX, intervalStart, intervalStart + kSampleStepSize, mX1, mX2);
-        }
-    }
-
-    return function BezierEasing(x) {
-        if (mX1 === mY1 && mX2 === mY2) {
-            return x; // linear
-        }
-        // Because JavaScript number are imprecise, we should guarantee the extremes are right.
-        if (x === 0) {
-            return 0;
-        }
-        if (x === 1) {
-            return 1;
-        }
-        return calcBezier(getTForX(x), mY1, mY2);
-    };
-}
-
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
@@ -456,8 +307,191 @@ var toConsumableArray = function (arr) {
   }
 };
 
-var Card = function (_PIXI$Graphics) {
-  inherits(Card, _PIXI$Graphics);
+var CardsGenerator = function () {
+    /**
+     * @param {Object<string, PIXI.Texture>}
+     */
+    function CardsGenerator(cardsTexture) {
+        classCallCheck(this, CardsGenerator);
+
+        /** @type {Object<string, PIXI.Texture>} */
+        this.cardsTexture = cardsTexture;
+        if (!cardsTexture) throw new Error('CardsGenerator needs CardTexture');
+    }
+
+    createClass(CardsGenerator, [{
+        key: 'toAssetName',
+        value: function toAssetName(value, suit) {
+            if (suit === CardsGenerator.RED_JOKER) return 'red_joker';
+            if (suit === CardsGenerator.BLACK_JOKER) return 'black_joker';
+            return 'card:' + CardsGenerator.VALUE_LABELS[value].toLowerCase() + '_of_' + CardsGenerator.SUITS[suit].toLowerCase();
+        }
+    }, {
+        key: 'generateCards',
+        value: function generateCards() {
+            var output = [];
+            for (var suitIndex = 0; suitIndex < CardsGenerator.SUITS.length; suitIndex++) {
+                for (var valueIndex = 0; valueIndex < CardsGenerator.VALUE_LABELS.length; valueIndex++) {
+                    var assetName = this.toAssetName(valueIndex, suitIndex);
+                    var texture = this.cardsTexture[assetName];
+                    if (!texture) throw new Error('Asset ' + assetName + ' is missing');
+                    output.push(new Card({
+                        width: CardsGenerator.CARD_WIDTH,
+                        height: CardsGenerator.CARD_HEIGHT,
+                        suit: suitIndex,
+                        value: valueIndex,
+                        texture: texture
+                    }));
+                }
+            }
+            output.push(new Card({
+                width: CardsGenerator.CARD_WIDTH,
+                height: CardsGenerator.CARD_HEIGHT,
+                suit: CardsGenerator.RED_JOKER,
+                value: CardsGenerator.JOKER_VALUE,
+                texture: this.cardsTexture['card:red_joker']
+            }));
+            output.push(new Card({
+                width: CardsGenerator.CARD_WIDTH,
+                height: CardsGenerator.CARD_HEIGHT,
+                suit: CardsGenerator.BLACK_JOKER,
+                value: CardsGenerator.JOKER_VALUE,
+                texture: this.cardsTexture['card:black_joker']
+            }));
+            return new CardCollection(output);
+        }
+    }]);
+    return CardsGenerator;
+}();
+
+CardsGenerator.CARD_WIDTH = 370 / 4;
+CardsGenerator.CARD_HEIGHT = 522 / 4;
+CardsGenerator.RED_JOKER = 'RedJoker';
+CardsGenerator.BLACK_JOKER = 'BlackJoker';
+CardsGenerator.JOKER_VALUE = 13;
+CardsGenerator.SUITS = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+CardsGenerator.VALUE_LABELS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'];
+
+/**
+ * https://github.com/gre/bezier-easing
+ * BezierEasing - use bezier curve for transition easing function
+ * by Gaëtan Renaudeau 2014 - 2015 – MIT License
+ */
+
+// These values are established by empiricism with tests (tradeoff: performance VS precision)
+var NEWTON_ITERATIONS = 4;
+var NEWTON_MIN_SLOPE = 0.001;
+var SUBDIVISION_PRECISION = 0.0000001;
+var SUBDIVISION_MAX_ITERATIONS = 10;
+
+var kSplineTableSize = 11;
+var kSampleStepSize = 1.0 / (kSplineTableSize - 1.0);
+
+var float32ArraySupported = typeof Float32Array === 'function';
+
+function A(aA1, aA2) {
+    return 1.0 - 3.0 * aA2 + 3.0 * aA1;
+}
+
+function B(aA1, aA2) {
+    return 3.0 * aA2 - 6.0 * aA1;
+}
+
+function C(aA1) {
+    return 3.0 * aA1;
+}
+
+// Returns x(t) given t, x1, and x2, or y(t) given t, y1, and y2.
+function calcBezier(aT, aA1, aA2) {
+    return ((A(aA1, aA2) * aT + B(aA1, aA2)) * aT + C(aA1)) * aT;
+}
+
+// Returns dx/dt given t, x1, and x2, or dy/dt given t, y1, and y2.
+function getSlope(aT, aA1, aA2) {
+    return 3.0 * A(aA1, aA2) * aT * aT + 2.0 * B(aA1, aA2) * aT + C(aA1);
+}
+
+function binarySubdivide(aX, aA, aB, mX1, mX2) {
+    var currentX,
+        currentT,
+        i = 0;
+    do {
+        currentT = aA + (aB - aA) / 2.0;
+        currentX = calcBezier(currentT, mX1, mX2) - aX;
+        if (currentX > 0.0) {
+            aB = currentT;
+        } else {
+            aA = currentT;
+        }
+    } while (Math.abs(currentX) > SUBDIVISION_PRECISION && ++i < SUBDIVISION_MAX_ITERATIONS);
+    return currentT;
+}
+
+function newtonRaphsonIterate(aX, aGuessT, mX1, mX2) {
+    for (var i = 0; i < NEWTON_ITERATIONS; ++i) {
+        var currentSlope = getSlope(aGuessT, mX1, mX2);
+        if (currentSlope === 0.0) {
+            return aGuessT;
+        }
+        var currentX = calcBezier(aGuessT, mX1, mX2) - aX;
+        aGuessT -= currentX / currentSlope;
+    }
+    return aGuessT;
+}
+
+function bezier(mX1, mY1, mX2, mY2) {
+    if (!(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)) {
+        throw new Error('bezier x values must be in [0, 1] range');
+    }
+
+    // Precompute samples table
+    var sampleValues = float32ArraySupported ? new Float32Array(kSplineTableSize) : new Array(kSplineTableSize);
+    if (mX1 !== mY1 || mX2 !== mY2) {
+        for (var i = 0; i < kSplineTableSize; ++i) {
+            sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
+        }
+    }
+
+    function getTForX(aX) {
+        var intervalStart = 0.0;
+        var currentSample = 1;
+        var lastSample = kSplineTableSize - 1;
+
+        for (; currentSample !== lastSample && sampleValues[currentSample] <= aX; ++currentSample) {
+            intervalStart += kSampleStepSize;
+        }--currentSample;
+
+        // Interpolate to provide an initial guess for t
+        var dist = (aX - sampleValues[currentSample]) / (sampleValues[currentSample + 1] - sampleValues[currentSample]);
+        var guessForT = intervalStart + dist * kSampleStepSize;
+
+        var initialSlope = getSlope(guessForT, mX1, mX2);
+        if (initialSlope >= NEWTON_MIN_SLOPE) {
+            return newtonRaphsonIterate(aX, guessForT, mX1, mX2);
+        } else if (initialSlope === 0.0) {
+            return guessForT;
+        } else {
+            return binarySubdivide(aX, intervalStart, intervalStart + kSampleStepSize, mX1, mX2);
+        }
+    }
+
+    return function BezierEasing(x) {
+        if (mX1 === mY1 && mX2 === mY2) {
+            return x; // linear
+        }
+        // Because JavaScript number are imprecise, we should guarantee the extremes are right.
+        if (x === 0) {
+            return 0;
+        }
+        if (x === 1) {
+            return 1;
+        }
+        return calcBezier(getTForX(x), mY1, mY2);
+    };
+}
+
+var Card = function (_PIXI$Container) {
+  inherits(Card, _PIXI$Container);
 
   function Card(options) {
     classCallCheck(this, Card);
@@ -467,49 +501,30 @@ var Card = function (_PIXI$Graphics) {
     _this.value = options.value;
     _this.suit = options.suit;
 
-    var width = options.width;
-    var height = options.height;
-    _this.originalWidth = options.width;
-    _this.originalHeight = options.height;
-    _this.drawBackground();
-    var valueText = new PIXI$1.Text(_this.getValue(), {
-      fontSize: 26,
-      fill: 0xd8d8d8,
-      align: 'center'
-    });
-    var suitText = new PIXI$1.Text(_this.getSuit(), {
-      fontSize: 14,
-      fill: 0xd8d8d8,
-      align: 'center'
-    });
     _this.isHighlighted = false;
-    valueText.x = width / 2;
-    valueText.y = 30;
-    valueText.anchor.set(0.5, 0.5);
-    suitText.x = width / 2;
-    suitText.y = height / 2;
-    suitText.anchor.set(0.5, 0.5);
-    _this.addChild(valueText);
-    _this.addChild(suitText);
+    _this.highlightGraphics = new PIXI$1.Graphics();
+    _this.highlightGraphics.visible = false;
+
+    var cardPicture = new PIXI$1.Sprite(options.texture);
+    cardPicture.width = options.width;
+    cardPicture.height = options.height;
+    _this.addChild(_this.highlightGraphics);
+    _this.addChild(cardPicture);
     return _this;
   }
 
   createClass(Card, [{
-    key: 'drawBackground',
-    value: function drawBackground() {
-      var shadowSteps = 10;
-      this.clear().lineStyle(1, 0x000000, 1).beginFill(this.suit === 1 || this.suit === 2 ? 0xFF0000 : 0, 0.5).drawRoundedRect(0, 0, this.originalWidth, this.originalHeight, this.originalWidth / 10).endFill();
-      if (this.isHighlighted) {
-        for (var i = 1; i < shadowSteps; i++) {
-          this.lineStyle(1, 0xffff00, 0.8 - i / shadowSteps).drawRoundedRect(-i, -i, this.originalWidth + i * 2, this.originalHeight + i * 2, this.originalWidth / 10);
-        }
-      }
-    }
-  }, {
     key: 'highlight',
     value: function highlight() {
+      var shadowSteps = 10;
       this.isHighlighted = true;
-      this.drawBackground();
+      this.highlightGraphics.visible = true;
+      this.highlightGraphics.clear();
+      for (var i = 0; i < shadowSteps; i++) {
+        var alpha = 0.8 - i / shadowSteps;
+        if (alpha < 0) break;
+        this.highlightGraphics.lineStyle(1, 0xffff00, alpha).drawRoundedRect(-i, -i, this.width + 1, this.height + 1, this.width / 10);
+      }
     }
   }, {
     key: 'isJoker',
@@ -519,13 +534,13 @@ var Card = function (_PIXI$Graphics) {
   }, {
     key: 'getSuit',
     value: function getSuit() {
-      if (this.suit === CardsGenerator.JOKER) return 'Joker';
+      if (this.isJoker()) return 'Joker';
       return CardsGenerator.SUITS[this.suit];
     }
   }, {
     key: 'getValue',
     value: function getValue() {
-      if (this.value === CardsGenerator.JOKER_VALUE) return 'Joker';
+      if (this.isJoker()) return 'Joker';
       return CardsGenerator.VALUE_LABELS[this.value];
     }
   }, {
@@ -535,7 +550,7 @@ var Card = function (_PIXI$Graphics) {
     }
   }]);
   return Card;
-}(PIXI$1.Graphics);
+}(PIXI$1.Container);
 
 var CardCollection = function () {
     createClass(CardCollection, null, [{
@@ -2476,6 +2491,16 @@ var AbsCardArea = function (_LinearLayout) {
             this.slots = new Array(this.cardSlots);
             return get(AbsCardArea.prototype.__proto__ || Object.getPrototypeOf(AbsCardArea.prototype), 'destroyChildren', this).call(this);
         }
+    }, {
+        key: 'clearCards',
+        value: function clearCards() {
+            var _this2 = this;
+
+            this.slots.forEach(function (card) {
+                _this2.removeCard(card);
+            });
+            this.slots = new Array(this.cardSlots);
+        }
 
         /**
          * @param {number} index
@@ -2619,24 +2644,85 @@ var CardRiverArea = function (_AbsCardArea) {
 
         var _this = possibleConstructorReturn(this, (CardRiverArea.__proto__ || Object.getPrototypeOf(CardRiverArea)).call(this, x, y, 5));
 
+        _this.childMargin = 40;
+        _this.updateLayoutPivot();
+        _this.keepTexts = [];
         _this.selectedCardsToBeChanged = [];
+        _this._generateKeepTexts();
         return _this;
     }
 
     /**
-     * @param {number} index
-     * @param {boolean} swt
+     * @private
      */
 
 
     createClass(CardRiverArea, [{
+        key: '_generateKeepTexts',
+        value: function _generateKeepTexts() {
+            for (var index = 0, text; index < this.cardSlots; index++) {
+                text = new PIXI$1.Text('GARDER', { fill: 0x000000, fontSize: 16 });
+                this.keepTexts.push(text);
+                this.addChild(text);
+            }
+        }
+    }, {
+        key: 'clearCards',
+        value: function clearCards() {
+            this.displayKeepTexts();
+            get(CardRiverArea.prototype.__proto__ || Object.getPrototypeOf(CardRiverArea.prototype), 'clearCards', this).call(this);
+        }
+    }, {
+        key: 'displayKeepTexts',
+        value: function displayKeepTexts() {
+            this.keepTexts.forEach(function (text) {
+                return text.visible = true;
+            });
+        }
+    }, {
+        key: 'hideKeepTexts',
+        value: function hideKeepTexts() {
+            this.keepTexts.forEach(function (text) {
+                return text.visible = false;
+            });
+        }
+    }, {
+        key: 'updateChildrenPosition',
+        value: function updateChildrenPosition() {
+            var pos = 0;
+            for (var index = 0; index < this.cardSlots; index++) {
+                var card = this.getCardAt(index);
+                if (card) {
+                    card.x = pos;
+                    var keepText = this.keepTexts[index];
+                    if (keepText) {
+                        keepText.position.set(pos + CardsGenerator.CARD_WIDTH / 2 - keepText.width / 2, card.y - keepText.height - 10);
+                    }
+                }
+
+                pos += CardsGenerator.CARD_WIDTH + this.childMargin;
+            }
+        }
+
+        /**
+         * @param {number} index
+         * @param {boolean} swt
+         */
+
+    }, {
         key: 'setSelectedCardIndex',
         value: function setSelectedCardIndex(index, swt) {
             var card = this.getCardAt(index);
             var indexOfCard = this.selectedCardsToBeChanged.indexOf(card);
             var isSelected = indexOfCard > -1;
             if (isSelected && swt || !isSelected && !swt) return;
-            if (swt) this.selectedCardsToBeChanged.push(card);else this.selectedCardsToBeChanged.splice(indexOfCard, 1);
+            if (swt) {
+                this.selectedCardsToBeChanged.push(card);
+                this.keepTexts[index].visible = false;
+            } else {
+                this.selectedCardsToBeChanged.splice(indexOfCard, 1);
+                this.keepTexts[index].visible = true;
+            }
             card.y += swt ? -20 : 20;
         }
     }]);
@@ -2668,12 +2754,14 @@ var Game = function () {
 
         i18n.setup(options.langs);
 
-        this.tokenCount = 54960;
+        this.tokenCount = 10000;
         this.originalBetCount = 100;
-        this.betCount = 100;
+        this.betCount = 0;
 
         this.gameState = Game.GAME_IDLE;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
+
+        this.cardsGenerator = new CardsGenerator(options.cardTextures);
 
         this.fg = new UpdatableContainer();
         this.gui = new UpdatableContainer();
@@ -2747,14 +2835,18 @@ var Game = function () {
             contextualBox.update(this);
             topMenu.update(this);
             this.clearBoard();
-            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
         }
     }, {
         key: 'clearBoard',
         value: function clearBoard() {
-            this.river.destroyChildren();
+            this.river.clearCards();
             if (this.cards) this.cards.destroy();
-            this.cards = CardsGenerator.generateCards().shuffle();
+            this.cards = this.cardsGenerator.generateCards();
+            var iteration = Numbers.clamp(Math.floor(Math.random() * 14), 2, 14);
+            for (var index = 0; index < iteration; index++) {
+                this.cards.shuffle();
+            }
+            console.log('shuffle %s times', iteration);
         }
 
         /**
@@ -2774,17 +2866,17 @@ var Game = function () {
             //     this.river.addChild(card);
             //     this.cards.remove(card);
             // }, this);
-            // // for (let i = 0; i < forcedCards; i++) {
-            // //     let card = this.cards.getByValue(2);
-            // //     if (i > 3) card = this.cards.getByValue(4);
-            // //     this.river.addChild(card)
-            // //     this.cards.remove(card);
-            // // }
-            // // for (let i = 0; i < forcedCards; i++) {
-            // //     let card = this.cards.getByValue(i + 1);
-            // //     this.river.addChild(card)
-            // //     this.cards.remove(card);
-            // // }
+            // for (let i = 0; i < forcedCards; i++) {
+            //     let card = this.cards.getByValue(2);
+            //     if (i > 3) card = this.cards.getByValue(4);
+            //     this.river.addChild(card)
+            //     this.cards.remove(card);
+            // }
+            // for (let i = 0; i < forcedCards; i++) {
+            //     let card = this.cards.getByValue(i + 1);
+            //     this.river.addChild(card)
+            //     this.cards.remove(card);
+            // }
 
             for (var index = 0; index < count; index++) {
                 var card = this.cards.peek();
@@ -2808,6 +2900,7 @@ var Game = function () {
     }, {
         key: 'setPlayingState',
         value: function setPlayingState(state) {
+            if (state === this.playingGameState) return;
             this.playingGameState = state;
             switch (state) {
                 case Game.STATE_PLAYING_CHOOSE_CARDS:
@@ -2823,6 +2916,7 @@ var Game = function () {
                     this.displayCardCursorSelection();
                     break;
                 case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
+                    this.river.hideKeepTexts();
                     this.commitChanges();
                     var combo = this.getCardComboList().getHigherCombo() || null;
                     var iaCombo = new CardCombo({ type: ComboType.Pair });
@@ -2908,10 +3002,6 @@ var Game = function () {
     }, {
         key: 'setSize',
         value: function setSize(w, h) {
-            if (this.container) {
-                this.container.style.width = w + 'px';
-                this.container.style.height = h + 'px';
-            }
             if (this.renderer.width !== w || this.renderer.height !== h) {
                 this.renderer.resize(w, h);
             }
@@ -3040,7 +3130,7 @@ Game.STATE_PLAYING_UP_OR_DOWN_SCORE = 8;
 var version = "0.0.7-PRE-Alpha";
 
 Game.VERSION = version;
-Game.BUILD_TIME = '01-20-2017 22:12:01';
+Game.BUILD_TIME = '01-21-2017 16:57:43';
 
 Tracker.track('pageview');
 

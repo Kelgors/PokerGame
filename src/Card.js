@@ -2,57 +2,35 @@ import PIXI from 'pixi.js';
 import CardsGenerator from './CardsGenerator';
 import BezierEasing from './lib/BezierEasing';
 
-export default class Card extends PIXI.Graphics {
+export default class Card extends PIXI.Container {
 
   constructor(options) {
     super();
     this.value = options.value;
     this.suit  = options.suit;
 
-    const width = options.width;
-    const height = options.height;
-    this.originalWidth = options.width;
-    this.originalHeight = options.height;
-    this.drawBackground();
-    const valueText = new PIXI.Text(this.getValue(), {
-      fontSize: 26,
-      fill: 0xd8d8d8,
-      align: 'center',
-    });
-    const suitText = new PIXI.Text(this.getSuit(), {
-      fontSize: 14,
-      fill: 0xd8d8d8,
-      align: 'center'
-    });
     this.isHighlighted = false;
-    valueText.x = width/2;
-    valueText.y = 30;
-    valueText.anchor.set(0.5,0.5);
-    suitText.x = width/2;
-    suitText.y = height/2;
-    suitText.anchor.set(0.5,0.5);
-    this.addChild(valueText);
-    this.addChild(suitText);
-  }
+    this.highlightGraphics = new PIXI.Graphics();
+    this.highlightGraphics.visible = false;
 
-  drawBackground() {
-    const shadowSteps = 10;
-    this.clear().lineStyle(1, 0x000000, 1)
-      .beginFill(this.suit === 1 || this.suit === 2 ? 0xFF0000 : 0, 0.5)
-      .drawRoundedRect(0, 0, this.originalWidth, this.originalHeight, this.originalWidth/10)
-      .endFill();
-    if (this.isHighlighted) {
-      for (let i = 1; i < shadowSteps; i++) {
-        this.lineStyle(1, 0xffff00, 0.8 - i / shadowSteps)
-          .drawRoundedRect(-i, -i, this.originalWidth+i*2, this.originalHeight+i*2, this.originalWidth/10);
-      }
-      
-    }
+    const cardPicture = new PIXI.Sprite(options.texture);
+    cardPicture.width = options.width;
+    cardPicture.height = options.height;
+    this.addChild(this.highlightGraphics);
+    this.addChild(cardPicture);
   }
 
   highlight() {
+    const shadowSteps = 10;
     this.isHighlighted = true;
-    this.drawBackground();
+    this.highlightGraphics.visible = true;
+    this.highlightGraphics.clear();
+    for (let i = 0; i < shadowSteps; i++) {
+      let alpha = 0.8 - i / shadowSteps;
+      if (alpha < 0) break;
+      this.highlightGraphics.lineStyle(1, 0xffff00, alpha)
+        .drawRoundedRect(-i, -i, this.width+1, this.height+1, this.width/10);
+    }
   }
 
   isJoker() {
@@ -60,12 +38,12 @@ export default class Card extends PIXI.Graphics {
   }
 
   getSuit() {
-    if (this.suit === CardsGenerator.JOKER) return 'Joker';
+    if (this.isJoker()) return 'Joker';
     return CardsGenerator.SUITS[this.suit];
   }
 
   getValue() {
-    if (this.value === CardsGenerator.JOKER_VALUE) return 'Joker';
+    if (this.isJoker()) return 'Joker';
     return CardsGenerator.VALUE_LABELS[this.value];
   }
 
