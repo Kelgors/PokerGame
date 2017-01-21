@@ -9,23 +9,13 @@
         mixpanel.init("507bdace4f3079ff3c1c0d9efd653ee6");</script><!-- end Mixpanel -->
     </head>
     <body>
-        <div class="right-container">
-            <H4>Commands</H4>
-            <button onclick="location.reload(true)">Reload</button>
-            <button onclick="game.stop();game.clearGame();game.newGame();game.start()">Start New Game</button>
-            <button onclick="game.stop()">Stop Game</button>
-            <button onclick="game.distribute();">Distribute</button>
-        </div>
-        <section id="viewport">
-            <!--<img src="/background.jpg">-->
-        </section>
+        <section id="viewport"></section>
         <footer>
             <span class="last-update">Last update: <time id="timestamp">18 Jan 2017 02:31</time></span>
             <span class="version">Version: <span id="version-name">PRE-Alpha</span></span>
         </footer>
         <script src="lib.js"></script>
         <script src="poker_game.js"></script>
-        <script class="langs" src="langs/fr.json" type="application/json"></script>
-        <script src="index.js" async></script>
+        <script src="index.js" async defer></script>
     </body>
 </html>

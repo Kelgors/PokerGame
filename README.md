@@ -19,3 +19,7 @@ gulp build
 gulp serve:website
 open http://localhost:8080
 ```
+
+#### Credits
+
+Default cards [http://opengameart.org/content/playing-cards-vector-png](http://opengameart.org/content/playing-cards-vector-png)

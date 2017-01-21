@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+    <head>
+    </head>
+    <body>
+<script>
+var GamePad = (function () {
+    const XBOX_360_CONTROLLER = {
+        CROSS_UP: 12,
+        CROSS_DOWN: 13,
+        CROSS_LEFT: 14,
+        CROSS_RIGHT: 15,
+        BUTTON_Y: 3,
+        BUTTON_B: 1,
+        BUTTON_A: 0,
+        BUTTON_X: 2,
+        AXIS_LEFT_HOR: 0,
+        AXIS_LEFT_VERT: 1,
+        AXIS_RIGHT_HOR: 2,
+        AXIS_RIGHT_VERT: 3,
+        START: 9,
+        SELECT: 8
+    };
+
+    var index = 0;
+    window.addEventListener('gamepadconnected', function (e) {
+        console.log(e.gamepad);
+        index = e.gamepad.index;
+    });
+
+    window.addEventListener('gamepaddisconnected', function (e) {
+        console.log(e.gamepad);
+        index = -1;
+    });
+
+    class InnerGamePad {
+        constructor(gamepad) {
+            this.gamepad = gamepad;
+        }
+
+        
+    };
+
+    function loop() {
+        if (index > -1) {
+            const gamepad = navigator.getGamepads()[index];
+            if (gamepad.buttons[12].value) {
+                console.log(gamepad.buttons[12].value);
+            }
+        }
+
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+})();
+</script>
+    </body>
+</html>
