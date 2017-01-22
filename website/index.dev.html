@@ -11,23 +11,31 @@
             <div id="play-screen" class="screen"></div>
             <div id="settings-screen" class="screen">
                 <div class="screen-body">
-                    <div class="field-container checkbox-container" role="checkbox" aria-checked="false">
+                    <header>
+                        <h1>Settings</h1>
+                    </header>
+                    <div class="field-container checkbox-container" role="checkbox" aria-checked="false" name="antialiasing">
                         <div class="checkbox-square-container"><div class="checkbox-square"></div></div>
-                        <label></label>
+                        <label>Antialiasing</label>
                     </div>
                     <div class="field-container">
-                        <select id="form-lang">
+                        <label for="form-lang">Language</label>
+                        <select id="form-lang" name="language">
                             <option value="en">English</option>
                             <option value="fr">Français</option>
                         </select>
                         <label></label>
                     </div>
                     <div class="field-container">
-                        <select id="form-speed">
+                        <label for="form-speed">Animation speed</label>
+                        <select id="form-speed" name="animation-speed">
                             <option value="fast">Fast</option>
                             <option value="slow">Slow</option>
                         </select>
                         <label></label>
+                    </div>
+                    <div class="field-container">
+                        <button class="submit">Submit</button>
                     </div>
                 </div>
             </div>

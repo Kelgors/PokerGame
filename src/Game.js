@@ -45,6 +45,7 @@ export default class Game {
         this.betCount = 0;
 
         this.gameState = Game.GAME_IDLE;
+        this._lastPlayingGameState = Game.STATE_PLAYING_CHOOSE_BET;
         this.playingGameState = Game.STATE_PLAYING_CHOOSE_BET;
 
         this.cardsGenerator = new CardsGenerator(options.cardTextures);
@@ -161,9 +162,9 @@ export default class Game {
             this.cards.remove(card);
             cards.push(card);
         }
-
+        const showText = this._lastPlayingGameState !== Game.STATE_PLAYING_CHOOSE_CARDS;
         return Async.forEachAsync(cards, function (card, index) {
-            cardArea.addCard(card, count === 5);
+            cardArea.addCard(card, showText);
             return Async.wait(index + 1 < count ? 40 : CardRiverArea.TRANSITION_IN_DURATION + 20);
         });
     }
@@ -181,6 +182,7 @@ export default class Game {
 
     setPlayingState(state) {
         if (state === this.playingGameState) return;
+        this._lastPlayingGameState = this.playingGameState;
         this.playingGameState = state;
         this._hasChangedPlayingState = true;
         switch (state) {

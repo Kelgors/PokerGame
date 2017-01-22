@@ -5,14 +5,16 @@ $checkbox_color: red
         background: white
         margin: 20px 0
         height: calc(100% - 40px)
-    .field-container
+    h1
+        margin: 0
+        padding: 0
+    .field-container, header
         padding: 10px
-        border: 1px solid black
-
+    label
+        cursor: pointer
     .checkbox-container
         $checkbox_size: 15px
         cursor: pointer
-        padding: 2px 0px
         &[aria-checked="true"]
             .checkbox-square
                 background: $checkbox_color

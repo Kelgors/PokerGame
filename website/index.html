@@ -8,8 +8,41 @@
         for(h=0;h<k.length;h++)e(d,k[h]);a._i.push([b,c,f])};a.__SV=1.2;b=e.createElement("script");b.type="text/javascript";b.async=!0;b.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";c=e.getElementsByTagName("script")[0];c.parentNode.insertBefore(b,c)}})(document,window.mixpanel||[]);
         mixpanel.init("507bdace4f3079ff3c1c0d9efd653ee6");</script><!-- end Mixpanel -->
     </head>
-    <body>
-        <section id="viewport"></section>
+    <body role="application">
+        <section id="viewport">
+            <div id="intro-screen" class="screen"></div>
+            <div id="play-screen" class="screen"></div>
+            <div id="settings-screen" class="screen">
+                <div class="screen-body">
+                    <header>
+                        <h1>Settings</h1>
+                    </header>
+                    <div class="field-container checkbox-container" role="checkbox" aria-checked="false" name="antialiasing">
+                        <div class="checkbox-square-container"><div class="checkbox-square"></div></div>
+                        <label>Antialiasing</label>
+                    </div>
+                    <div class="field-container">
+                        <label for="form-lang">Language</label>
+                        <select id="form-lang" name="language">
+                            <option value="en">English</option>
+                            <option value="fr">Français</option>
+                        </select>
+                        <label></label>
+                    </div>
+                    <div class="field-container">
+                        <label for="form-speed">Animation speed</label>
+                        <select id="form-speed" name="animation-speed">
+                            <option value="fast">Fast</option>
+                            <option value="slow">Slow</option>
+                        </select>
+                        <label></label>
+                    </div>
+                    <div class="field-container">
+                        <button class="submit">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </section>
         <footer>
             <span class="last-update">Last update: <time id="timestamp">18 Jan 2017 02:31</time></span>
             <span class="version">Version: <span id="version-name"></span></span>

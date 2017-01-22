@@ -1,7 +1,14 @@
 var router = new Navigo(null, true);
 var currentLang = null;
+var settingsView = null;
 
 router.on('/:lang/settings', function () {
+    if (!settingsView) {
+        settingsView = new SettingsView();
+        settingsView.addInteractions();
+    }
+    settingsView.render();
+    settingsView.save();
     setScreen('settings-screen');
 });
 
@@ -121,6 +128,49 @@ function initializeGame(resources) {
     document.getElementById('version-name').textContent = PokerGame.Game.VERSION;
     return Promise.resolve(game);
 }
+
+function SettingsView() {
+    this.el = document.getElementById('settings-screen');
+}
+SettingsView.prototype.addInteractions = function addInteractions() {
+    Array.from(this.el.querySelectorAll('.checkbox-container')).forEach(function (el) {
+        el.onclick = function () {
+            const checked = this.getAttribute('aria-checked') === 'true';
+            this.setAttribute('aria-checked', checked ? 'false' : 'true');
+        };
+    });
+    this.el.querySelector('.submit').onclick = (function () {
+        this.save();
+    }).bind(this);
+};
+
+SettingsView.prototype.render = function render() {
+    var itemsLen = localStorage.length;
+    for (var index = 0; index < itemsLen; index++) {
+        var key = localStorage.key(index);
+        var value = localStorage.getItem(key);
+        if (!value) continue;
+        var el = this.el.querySelector('[name="' + key + '"]');
+        if (el.tagName === 'SELECT') {
+            var option = el.querySelector('[value="' + value + '"]');
+            el.selectedOptions = [ option ];
+        } else if (el.getAttribute('role') === 'checkbox') {
+            el.setAttribute('aria-checked', value);
+        }
+    }
+};
+
+SettingsView.prototype.save = function save() {
+    Array.from(this.el.querySelectorAll('.checkbox-container')).forEach(function (el) {
+        localStorage.setItem(el.getAttribute('name'), el.getAttribute('aria-checked'));
+    });
+    Array.from(this.el.querySelectorAll('select')).forEach(function (el) {
+        var option = el.selectedOptions.item(0);
+        var value = option.value;
+        localStorage.setItem(el.getAttribute('name'), value);
+    });
+};
+
 
 window.addEventListener('focus', function () {
     if (window.game) window.game.start();

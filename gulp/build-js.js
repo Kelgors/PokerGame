@@ -75,10 +75,7 @@ gulp.task('build:js:src', function() {
     return file(name + '.js', gen.code, {src: true})
       .pipe(plumber())
       .pipe(replace(/\{BUILD_TIME\}/, `${buildTime}`))
-      .pipe(sourcemaps.init({loadMaps: true}))
-      .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(buildPath))
-      .pipe(filter(['*', '!*.js.map']))
       .pipe(rename(name + '.min.js'))
       .pipe(uglify({
         preserveComments: 'license'
