@@ -42,3 +42,5 @@ dist/
 website/assets/
 website/lib.js
 website/lib.min.js
+website/index.css
+website/index.min.css
