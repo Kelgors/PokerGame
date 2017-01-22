@@ -30,6 +30,14 @@ export default class AbsCardArea extends LinearLayout {
         this.slots = new Array(this.cardSlots);
         return super.destroyChildren();
     }
+    /** @inheritdoc */
+    destroyCards() {
+        this.slots.forEach((card) => {
+            this.removeCard(card);
+            card.destroy();
+        });
+        this.slots = new Array(this.cardSlots);
+    }
 
     clearCards() {
         this.slots.forEach((card) => {

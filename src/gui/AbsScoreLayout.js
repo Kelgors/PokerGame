@@ -43,7 +43,7 @@ export default class AbsScoreLayout extends UpdatableContainer {
         for (let index = 0; index < this.children.length; index++) {
             const child = this.children[index];
             child.x = this.rendererWidth*3/4 + child.width / 2 + 1;
-            child.y = this.rendererHeight / 3;
+            child.y = this.rendererHeight * 0.3;
             child.alpha = 0;
         }
     }

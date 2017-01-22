@@ -41,17 +41,9 @@ export default class CardRiverArea extends AbsCardArea {
     addCard(card, showText = false) {
         super.addCard(card);
         const index = this.slots.indexOf(card);
-        card.setAnimation(new TransformAnimation({
-            posFrom: new PIXI.Point(card.x, card.y - 300),
-            posTo: new PIXI.Point(card.x, card.y),
-            alphaFrom: 0,
-            alphaTo: 1,
-            duration: CardRiverArea.TRANSITION_IN_DURATION,
-            callback: (s) => {
-                s.setAnimation(null);
-                if (showText) this.displayKeepTexts(index);
-            }
-        }));
+        card.setInAnimation(() => {
+            if (showText) this.displayKeepTexts(index);
+        });
     }
 
     clearCards() {
@@ -88,7 +80,7 @@ export default class CardRiverArea extends AbsCardArea {
             this.selectedCardsToBeChanged.splice(indexOfCard, 1);
             this.keepTexts[index].visible = true;
         }
-        card.y += swt ? -20 : 20;
+        card.y += swt ? -40 : 40;
     }
 
 }

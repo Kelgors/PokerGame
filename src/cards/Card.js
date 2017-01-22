@@ -1,6 +1,7 @@
 import PIXI from 'pixi.js';
 import CardsGenerator from './CardsGenerator';
 import BezierEasing from '../lib/BezierEasing';
+import TransformAnimation from '../lib/TransformAnimation';
 
 export default class Card extends PIXI.Container {
 
@@ -21,9 +22,44 @@ export default class Card extends PIXI.Container {
     this.animation = null;
   }
 
+  destroy() {
+    //console.log('destroy', this.toString());
+    this.setAnimation(null);
+    super.destroy();
+  }
+
   setAnimation(animation) {
     if (this.animation) this.animation.destroy();
     this.animation = animation;
+    if (animation) animation.update(this);
+  }
+
+  setInAnimation(callback) {
+    this.setAnimation(new TransformAnimation({
+        posFrom: new PIXI.Point(this.x, this.y - 300),
+        posTo: new PIXI.Point(this.x, this.y),
+        alphaFrom: 0,
+        alphaTo: 1,
+        duration: Card.TRANSITION_IN_DURATION,
+        callback: (s) => {
+            s.setAnimation(null);
+            if (callback) callback();
+        }
+    }));
+  }
+
+  setOutAnimation(callback) {
+    this.setAnimation(new TransformAnimation({
+        posFrom: new PIXI.Point(this.x, this.y),
+        posTo: new PIXI.Point(this.x, this.y - 300),
+        alphaFrom: 1,
+        alphaTo: 0,
+        duration: Card.TRANSITION_OUT_DURATION,
+        callback: (s) => {
+            s.setAnimation(null);
+            if (callback) callback();
+        }
+    }));
   }
 
   update(game) {
@@ -62,3 +98,6 @@ export default class Card extends PIXI.Container {
   }
 
 }
+
+Card.TRANSITION_IN_DURATION = 200;
+Card.TRANSITION_OUT_DURATION = 200;

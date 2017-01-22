@@ -11,6 +11,7 @@ import AbsCardArea from './containers/AbsCardArea';
 import CardRiverArea from './containers/CardRiverArea';
 import CardBetArea from './containers/CardBetArea';
 
+import Card from './cards/Card';
 import CardCollection from './cards/CardCollection';
 import CardsGenerator from './cards/CardsGenerator';
 import {CardComboList,CardCombo,ComboType} from './cards/CardComboList';
@@ -76,8 +77,8 @@ export default class Game {
 
     destroy() {
         this.clearGame();
-        this.fg.destroy();
-        this.gui.destroy();
+        this.fg.destroy({ children: true });
+        this.gui.destroy({ children: true });
         this.renderer.destroy();
         this.fg = null;
         this.gui = null;
@@ -97,8 +98,8 @@ export default class Game {
         this.gameState = Game.STATE_IDLE;
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
-        this.river = new CardRiverArea(stageWidth/2, stageHeight/4*2);
-        this.betRiver = new CardBetArea(stageWidth/2, stageHeight/4*2);
+        this.river = new CardRiverArea(stageWidth/2, stageHeight*0.46);
+        this.betRiver = new CardBetArea(stageWidth/2, stageHeight/2);
         this.river.visible = false;
         this.betRiver.visible = false;
         this.fg.addChild(this.river);
@@ -110,10 +111,11 @@ export default class Game {
         this.fg.addChild(topMenu);
         contextualBox.update(this);
         topMenu.update(this);
-        this.clearBoard();
-
     }
 
+    /**
+     * Clear the river and generate new deck
+     */
     clearBoard() {
         this.river.clearCards();
         if (this.cards) this.cards.destroy();
@@ -122,6 +124,7 @@ export default class Game {
         for (let index = 0; index < iteration; index++) {
             this.cards.shuffle();
         }
+        //console.log('shuffle %s times', iteration);
     }
 
     /**
@@ -178,12 +181,15 @@ export default class Game {
         switch (state) {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
                 this.playingGameState = Game.STATE_PLAYING_CARD_TRANSITION;
+                this.river.destroyCards();
+                this.betRiver.destroyCards();
+                this.gui.destroyChildren();
+
                 this.river.visible = true;
                 this.betRiver.visible = false;
                 this.betCount = this.originalBetCount;
                 this.tokenCount -= this.originalBetCount;
                 Tracker.track('game:new');
-                this.gui.destroyChildren();
                 this.fg.findChildrenByType(GUIContext).displayControls();
                 this.clearBoard();
                 this.distribute(5).then(() => {
@@ -204,10 +210,11 @@ export default class Game {
                 this.fg.findChildrenByType(GUIContext).displayChooseBet();
                 break;
             case Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN:
+                this.river.destroyCards();
+                this.betRiver.destroyCards();
                 this.playingGameState = Game.STATE_PLAYING_CARD_TRANSITION;
                 this.river.visible = false;
                 this.betRiver.visible = true;
-                this.betRiver.destroyChildren();
                 this.distribute(1, this.betRiver).then(() => {
                     this.fg.findChildrenByType(GUIContext).displayUpOrDownChoice(this._onBetChoiceDone.bind(this));
                     this.playingGameState = Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN;
@@ -219,16 +226,19 @@ export default class Game {
 
     /**
      * Remove selected cards and distribute new ones
+     * @async
      * @returns {Promise}
      */
     commitChanges() {
         const cards = this.river.selectedCardsToBeChanged.splice(0, this.river.selectedCardsToBeChanged.length);
         const cardsLen = cards.length;
-        for (let index = 0; index < cardsLen; index++) {
-            this.river.removeCard(cards[index]);
-            cards[index].destroy();
-        }
-        return this.distribute(cardsLen);
+        return Async.forEachAsync(cards, function (card, index) {
+            card.setOutAnimation(() => {
+                this.river.removeCard(card);
+                card.destroy();
+            });
+            return Async.wait(index + 1 < cardsLen ? 40 : Card.TRANSITION_OUT_DURATION + 20);
+        }, this).then(() => this.distribute(cardsLen));
     }
 
     /**
