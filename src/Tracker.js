@@ -1,9 +1,10 @@
+const _trackerIsUndefined = typeof mixpanel === 'undefined';
 const isMe = !!localStorage.getItem('isMe');
-const stopTracking = !!localStorage.getItem('StopTracking') || /localhost\:8080/.test(location.toString()) || typeof mixpanel === 'undefined';
+const stopTracking = _trackerIsUndefined || !!localStorage.getItem('StopTracking') || /localhost\:8080/.test(location.toString());
 
 if (stopTracking) console.log('stop-tracking');
 
-if (isMe) {
+if (!_trackerIsUndefined && isMe) {
     mixpanel.identify('1');
 }
 
