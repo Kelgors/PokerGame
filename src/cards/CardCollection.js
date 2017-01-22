@@ -48,8 +48,8 @@ export default class CardCollection {
     }
 
     /**
-     * @param {number} suit
-     * @param {number} value
+     * @param {Number} suit
+     * @param {Number} value
      * @returns {Card} card
      */
     getBySuitAndValue(suit, value) {
@@ -57,7 +57,7 @@ export default class CardCollection {
     }
 
     /**
-     * @param {number} value
+     * @param {Number} value
      * @returns {Card} card
      */
     getByValue(value) {
@@ -65,11 +65,19 @@ export default class CardCollection {
     }
 
     /**
-     * @param {number} suit
+     * @param {Number} suit
      * @returns {Card} card
      */
     getBySuit(suit) {
         return this.cards.find((c) => c.suit === suit);
+    }
+
+    /**
+     * @param {Number} value
+     * @returns {Boolean}
+     */
+    includesValue(value) {
+        return !!this.getByValue(value);
     }
 
     /**

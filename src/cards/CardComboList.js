@@ -1,6 +1,7 @@
 import CardCollection from './CardCollection';
 import Arrays from '../utils/Arrays';
 import Numbers from '../utils/Numbers';
+import CardsGenerator from './CardsGenerator';
 
 /** @type {Object.<string, number>} */
 export var ComboType = {
@@ -54,9 +55,7 @@ export class CardComboList {
 
     getHigherCombo() {
         return this.combos.sort((a, b) => {
-            if (a.type > b.type) return -1;
-            if (a.type < b.type) return 1;
-            return 0;
+            return Numbers.Compare.desc(a.getComparatorValue(), b.getComparatorValue());
         })[0];
     }
 
@@ -83,6 +82,9 @@ export class CardComboList {
         if (straightFlushCombo) this.add(straightFlushCombo);
 
         // todo: royalFlush
+        const royalFlushCombo = this._getRoyalFlush();
+        if (royalFlushCombo) this.add(royalFlushCombo);
+
         
         this.combos.sort((a, b) => Numbers.Compare.desc(a.getScore(), b.getScore()));
     }
@@ -119,42 +121,53 @@ export class CardComboList {
             4: ComboType.FourOfAKind,
             5: ComboType.FiveOfAKind
         };
-        cards.forEach((card, cardIndex, cards) => {
+        cards.sort(function (a, b) {
+            return Numbers.Compare.asc(a.value, b.value);
+        }).forEach((card, cardIndex, cards) => {
             const localeCards = [ card ];
             for (let index = 0; index < cards.length; index++) {
                 if (card !== cards[index] && (card.value === cards[index].value || cards[index].isJoker())) {
                     localeCards.push(cards[index]);
                 }
-            }
-            if (localeCards.length > 1 && localeCards.length < 6) {
-                combos.push(new CardCombo({
-                    type: comboTypeMapper[localeCards.length],
-                    cards: localeCards
-                }));
+                if (localeCards.length > 1 && localeCards.length < 6) {
+                    combos.push(new CardCombo({
+                        type: comboTypeMapper[localeCards.length],
+                        cards: localeCards.slice(0)
+                    }));
+                }
             }
         });
         return Arrays.uniq(combos, (d) => d.getId());
     }
 
     _getFullHouse() {
-        const pair = this.combos.find((d) => d.type === ComboType.Pair);
+        const pairs = this.combos.filter((d) => d.type === ComboType.Pair);
         const threeOfAKind = this.combos.find((d) => d.type === ComboType.ThreeOfAKind);
-        if (pair && threeOfAKind && this._isAllCardDifferents(pair, threeOfAKind)) {
-            return new CardCombo({
-                type: ComboType.FullHouse,
-                cards: [].concat(pair.getCards(), threeOfAKind.getCards())
-            });
+        for (let index = 0; index < pairs.length; index++) {
+            const pair = pairs[index];
+            if (pair && threeOfAKind && this._isAllCardDifferents(pair, threeOfAKind)) {
+                return new CardCombo({
+                    type: ComboType.FullHouse,
+                    cards: [].concat(pair.getCards(), threeOfAKind.getCards())
+                });
+            }
         }
+        return null;
     }
 
     _getStraight() {
         const cards = this.originalCollection.toArray();
-        const values = cards.map((d) => d.value).sort(Numbers.Compare.asc);
+        const JOKER_VALUE = CardsGenerator.JOKER_VALUE;
+        const values = cards.filter((d) => !d.isJoker()).map((d) => d.value).sort(Numbers.Compare.asc);
         let jokers = cards.filter((d) => d.isJoker()).length;
+
         for (let index = 1, value = values[0]; index < values.length; index++) {
             const match = value + 1 === values[index];
             if (!match && jokers === 0) return;
-            if (!match) jokers--;
+            if (!match) {
+                jokers--;
+                index--;
+            }
             value++;
         }
         return new CardCombo({
@@ -165,7 +178,7 @@ export class CardComboList {
 
     _getFlush() {
         const cards = this.originalCollection.toArray();
-        let firstSuit = cards[0].suit;
+        let firstSuit = cards.find((d) => !d.isJoker()).suit;
         for (let index = 1; index < cards.length; index++) {
             if (cards[index].suit !== firstSuit && !cards[index].isJoker()) return null;
         }
@@ -184,6 +197,22 @@ export class CardComboList {
                 cards: flush.getCards()
             });
         }
+    }
+
+    _getRoyalFlush() {
+        const straightFlush = this.combos.find((d) => d.type === ComboType.StraightFlush);
+        if (!straightFlush) return null;
+        const cards = straightFlush.cards;
+        const jokerCount = cards.toArray().filter((d) => d.isJoker()).length;
+        let cardCount = 0;
+        for (let cardValue = 8; cardValue < 13; cardValue++) {
+            if (cards.includesValue(cardValue)) cardCount++;
+        }
+        if (jokerCount + cardCount !== 5) return null;
+        return new CardCombo({
+            type: ComboType.RoyalFlush,
+            cards: cards.toArray()
+        });
     }
 
     /**
@@ -242,6 +271,10 @@ export class CardCombo {
     getId() {
         this._sortCards();
         return this.getCards().map((d) => `${d.value}&${d.suit}`).join('/');
+    }
+
+    getComparatorValue() {
+        return this.type + this.getCards().map((d) => d.value).reduce((prev, cur) => prev+cur, 0);
     }
 
     /**

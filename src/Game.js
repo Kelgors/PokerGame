@@ -138,31 +138,28 @@ export default class Game {
      * @param {AbsCardArea} cardArea
      */
     distribute(count, cardArea = this.river) {
-        
-        // const forcedCards = 0;
-        // [ 3, 2, 1, 0, CardsGenerator.JOKER_VALUE ].forEach(function (value) {
-        //     const card = this.cards.getByValue(value);
-        //     this.river.addChild(card);
-        //     this.cards.remove(card);
-        // }, this);
-        // for (let i = 0; i < forcedCards; i++) {
-        //     let card = this.cards.getByValue(2);
-        //     if (i > 3) card = this.cards.getByValue(4);
-        //     this.river.addChild(card)
-        //     this.cards.remove(card);
-        // }
-        // for (let i = 0; i < forcedCards; i++) {
-        //     let card = this.cards.getByValue(i + 1);
-        //     this.river.addChild(card)
-        //     this.cards.remove(card);
-        // }
         const cards = [];
+        const showText = this._lastPlayingGameState !== Game.STATE_PLAYING_CHOOSE_CARDS;
+
+        // if (showText && count > 0) {
+        //     [  0,1,2,4, 13 ].forEach(function (value) {
+        //         let card = this.cards.getByValue(value);
+        //         if (value == 13) card = this.cards.getByValue(value);
+        //         this.cards.remove(card);
+        //         cards.push(card);
+        //     }, this);
+        // } else {
+        //     for (let index = 0; index < count; index++) {
+        //         const card = this.cards.peek();
+        //         this.cards.remove(card);
+        //         cards.push(card);
+        //     }
+        // }
         for (let index = 0; index < count; index++) {
             const card = this.cards.peek();
             this.cards.remove(card);
             cards.push(card);
         }
-        const showText = this._lastPlayingGameState !== Game.STATE_PLAYING_CHOOSE_CARDS;
         return Async.forEachAsync(cards, function (card, index) {
             cardArea.addCard(card, showText);
             return Async.wait(index + 1 < count ? 40 : CardRiverArea.TRANSITION_IN_DURATION + 20);
