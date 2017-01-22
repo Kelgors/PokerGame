@@ -1,6 +1,7 @@
 import PIXI from 'pixi.js';
 import AbsCardArea from './AbsCardArea';
 import CardsGenerator from '../CardsGenerator';
+import TransformAnimation from '../lib/TransformAnimation';
 
 export default class CardRiverArea extends AbsCardArea {
 
@@ -17,6 +18,13 @@ export default class CardRiverArea extends AbsCardArea {
         this._generateKeepTexts();
     }
 
+    update(game) {
+        super.update(game);
+        this.slots.forEach(function (card) {
+            if (card) card.update(game);
+        });
+    }
+
     /**
      * @private
      */
@@ -26,35 +34,42 @@ export default class CardRiverArea extends AbsCardArea {
             this.keepTexts.push(text);
             this.addChild(text);
         }
+        this.hideKeepTexts();
+    }
+
+    /** @inheritdoc */
+    addCard(card, showText = false) {
+        super.addCard(card);
+        const index = this.slots.indexOf(card);
+        card.setAnimation(new TransformAnimation({
+            posFrom: new PIXI.Point(card.x, card.y - 300),
+            posTo: new PIXI.Point(card.x, card.y),
+            alphaFrom: 0,
+            alphaTo: 1,
+            duration: CardRiverArea.TRANSITION_IN_DURATION,
+            callback: (s) => {
+                s.setAnimation(null);
+                if (showText) this.displayKeepTexts(index);
+            }
+        }));
     }
 
     clearCards() {
-        this.displayKeepTexts();
         super.clearCards();
     }
 
-    displayKeepTexts() {
-        this.keepTexts.forEach((text) => text.visible = true);
+    displayKeepTexts(index) {
+        const card = this.getCardAt(index);
+        const keepText = this.keepTexts[index];
+        keepText.visible = true;
+        keepText.position.set(
+            card.x + CardsGenerator.CARD_WIDTH/2 - keepText.width/2,
+            card.y - keepText.height - 10
+        );
     }
 
     hideKeepTexts() {
         this.keepTexts.forEach((text) => text.visible = false);
-    }
-
-    updateChildrenPosition() {
-        let pos = 0;
-        for (let index = 0; index < this.cardSlots; index++) {
-            const card = this.getCardAt(index);
-            if (card) {
-                card.x = pos;
-                let keepText = this.keepTexts[index];
-                if (keepText) {
-                    keepText.position.set(pos + CardsGenerator.CARD_WIDTH/2 - keepText.width/2, card.y - keepText.height - 10);
-                }
-            }
-
-            pos += CardsGenerator.CARD_WIDTH + this.childMargin;
-        }
     }
 
     /**
@@ -77,3 +92,5 @@ export default class CardRiverArea extends AbsCardArea {
     }
 
 }
+
+CardRiverArea.TRANSITION_IN_DURATION = 200;

@@ -19,9 +19,9 @@ const srcPath = 'src/';
 const buildPath = 'dist/';
 
 const libFiles = [
-  'bower_components/mersennetwister/src/MersenneTwister.js',
-  'bower_components/jquery/dist/jquery.js',
-  'bower_components/pixi.js/dist/pixi.js'
+//  'bower_components/mersennetwister/src/MersenneTwister.js',
+  'bower_components/jquery/dist/jquery.min.js',
+  'bower_components/pixi.js/dist/pixi.min.js'
 ];
 
 function _generate(bundle){
@@ -59,7 +59,10 @@ function bundle(opts) {
 }
 
 const now = new Date();
-
+/**
+ * @param {Number} n
+ * @returns {String}
+ */
 function formatNumber(n) {
   if (n < 10) return `0${n}`;
   return n.toString();
@@ -74,12 +77,12 @@ gulp.task('build:js:src', function() {
       .pipe(sourcemaps.init({loadMaps: true}))
       .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(buildPath))
-      .pipe(filter(['*', '!**/*.js.map']))
+      .pipe(filter(['*', '!*.js.map']))
       .pipe(rename(name + '.min.js'))
-      .pipe(sourcemaps.init({loadMaps: true}))
       .pipe(uglify({
         preserveComments: 'license'
       }))
+      .pipe(sourcemaps.init({loadMaps: true}))
       .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(buildPath));
   });
@@ -89,6 +92,11 @@ gulp.task('build:js:lib', function() {
   return gulp.src(libFiles)
       .pipe(plumber())
       .pipe(concat('lib.js'))
+      .pipe(gulp.dest('website/'))
+      .pipe(rename('lib.min.js'))
+      .pipe(uglify({
+        preserveComments: 'license'
+      }))
       .pipe(gulp.dest('website/'));
 });
 

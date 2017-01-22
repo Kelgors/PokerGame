@@ -2,6 +2,7 @@ import Keyboard from './lib/Keyboard';
 import Tracker from './Tracker';
 import i18n from './i18n';
 import Numbers from './Numbers';
+import Async from './Async';
 
 import UpdatableContainer from './containers/UpdatableContainer';
 import LinearLayout from './gui/LinearLayout';
@@ -32,6 +33,7 @@ export default class Game {
         this.cards = null;
         /** @type {AbsCardArea} */
         this.river = null;
+        this._hasChangedPlayingState = false;
 
         i18n.setup(options.langs);
 
@@ -94,7 +96,6 @@ export default class Game {
 
     newGame() {
         this.gameState = Game.STATE_IDLE;
-
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
         this.river = new CardRiverArea(stageWidth/2, stageHeight/4*2);
@@ -122,11 +123,10 @@ export default class Game {
         for (let index = 0; index < iteration; index++) {
             this.cards.shuffle();
         }
-        console.log('shuffle %s times', iteration);
     }
 
     /**
-     * @param {number} count
+     * @param {Number} count
      * @param {AbsCardArea} cardArea
      */
     distribute(count, cardArea = this.river) {
@@ -148,12 +148,17 @@ export default class Game {
         //     this.river.addChild(card)
         //     this.cards.remove(card);
         // }
-
+        const cards = [];
         for (let index = 0; index < count; index++) {
-            let card = this.cards.peek();
-            cardArea.addCard(card);
+            const card = this.cards.peek();
             this.cards.remove(card);
+            cards.push(card);
         }
+
+        return Async.forEachAsync(cards, function (card, index) {
+            cardArea.addCard(card, count === 5);
+            return Async.wait(index + 1 < count ? 40 : CardRiverArea.TRANSITION_IN_DURATION + 20);
+        });
     }
 
     displayCardCursorSelection() {
@@ -170,8 +175,10 @@ export default class Game {
     setPlayingState(state) {
         if (state === this.playingGameState) return;
         this.playingGameState = state;
+        this._hasChangedPlayingState = true;
         switch (state) {
             case Game.STATE_PLAYING_CHOOSE_CARDS:
+                this.playingGameState = Game.STATE_PLAYING_CARD_TRANSITION;
                 this.river.visible = true;
                 this.betRiver.visible = false;
                 this.betCount = this.originalBetCount;
@@ -180,66 +187,98 @@ export default class Game {
                 this.gui.destroyChildren();
                 this.fg.findChildrenByType(GUIContext).displayControls();
                 this.clearBoard();
-                this.distribute(5);
-                this.displayCardCursorSelection();
+                this.distribute(5).then(() => {
+                    this.displayCardCursorSelection();
+                    this.playingGameState = Game.STATE_PLAYING_CHOOSE_CARDS;
+                });
                 break;
             case Game.STATE_PLAYING_DISPLAY_RIVER_SCORE:
+                this.playingGameState = Game.STATE_PLAYING_CARD_TRANSITION;
                 this.river.hideKeepTexts();
-                this.commitChanges();
-                const combo = this.getCardComboList().getHigherCombo() || null;
-                const iaCombo = new CardCombo({ type: ComboType.Pair });
-
-                const score = Resolver.compareCombos(combo, iaCombo);
-                if (combo) {
-                    combo.getCards().forEach(function (d) {
-                        d.highlight();
+                this.commitChanges().then(this._onChangesCommited.bind(this))
+                    .then(() => {
+                        this.playingGameState = Game.STATE_PLAYING_DISPLAY_RIVER_SCORE;
                     });
-                    Tracker.track('combo', {
-                        type: combo.getTypeName(),
-                        cards: combo.getCards().map(String)
-                    });
-                    if (Score.WON === score) {
-                        this.betCount = this.originalBetCount * combo.type;
-                    }
-                }
-                this.fg.findChildrenByType(GUIContext).displayCombo(combo);
-                this.gui.addChild(new GUIScoreLayout({
-                    playerCombo: combo,
-                    iaCombo: iaCombo,
-                    game: this
-                }));
-                
                 break;
             case Game.STATE_PLAYING_CHOOSE_RISK:
                 this.gui.destroyChildren();
                 this.fg.findChildrenByType(GUIContext).displayChooseBet();
                 break;
             case Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN:
+                this.playingGameState = Game.STATE_PLAYING_CARD_TRANSITION;
                 this.river.visible = false;
                 this.betRiver.visible = true;
                 this.betRiver.destroyChildren();
-                this.distribute(1, this.betRiver);
-                this.fg.findChildrenByType(GUIContext).displayUpOrDownChoice(this._onBetChoiceDone.bind(this));
+                this.distribute(1, this.betRiver).then(() => {
+                    this.fg.findChildrenByType(GUIContext).displayUpOrDownChoice(this._onBetChoiceDone.bind(this));
+                    this.playingGameState = Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN;
+                });
                 break;
 
         }
     }
 
-    _onBetChoiceDone(choice) {
-        this.distribute(1, this.betRiver);
-        const firstCard = this.betRiver.getCardAt(0);
-        const lastCard = this.betRiver.getCardAt(1);
-
-        if ((choice == 'up' && firstCard.value < lastCard.value) || (choice == 'down' && firstCard.value > lastCard.value)) {
-            this.betCount *= 2;
-            this.displayBetScore(Score.WON);
-        } else {
-            this.displayBetScore(Score.LOST);
+    /**
+     * Remove selected cards and distribute new ones
+     * @returns {Promise}
+     */
+    commitChanges() {
+        const cards = this.river.selectedCardsToBeChanged.splice(0, this.river.selectedCardsToBeChanged.length);
+        const cardsLen = cards.length;
+        for (let index = 0; index < cardsLen; index++) {
+            this.river.removeCard(cards[index]);
+            cards[index].destroy();
         }
-        this.setPlayingState(Game.STATE_PLAYING_DISPLAY_BET_SCORE);
+        return this.distribute(cardsLen);
+    }
+
+    /**
+     * Display score when distribution animation is over
+     */
+    _onChangesCommited() {
+        const combo = this.getCardComboList().getHigherCombo() || null;
+        const iaCombo = new CardCombo({ type: ComboType.Pair });
+
+        const score = Resolver.compareCombos(combo, iaCombo);
+        if (combo) {
+            combo.getCards().forEach(function (d) {
+                d.highlight();
+            });
+            Tracker.track('combo', {
+                type: combo.getTypeName(),
+                cards: combo.getCards().map(String)
+            });
+            if (Score.WON === score) {
+                this.betCount = this.originalBetCount * combo.type;
+            }
+        }
+        this.fg.findChildrenByType(GUIContext).displayCombo(combo);
+        this.gui.addChild(new GUIScoreLayout({
+            playerCombo: combo,
+            iaCombo: iaCombo,
+            game: this
+        }));
+    }
+
+    _onBetChoiceDone(choice) {
+        this.fg.findChildrenByType(GUIContext).clearBoxes();
+        this.distribute(1, this.betRiver).then(() => {
+            const firstCard = this.betRiver.getCardAt(0);
+            const lastCard = this.betRiver.getCardAt(1);
+
+            if ((choice == 'up' && firstCard.value < lastCard.value) || (choice == 'down' && firstCard.value > lastCard.value)) {
+                this.betCount *= 2;
+                this.displayBetScore(Score.WON);
+            } else {
+                this.displayBetScore(Score.LOST);
+            }
+            this.setPlayingState(Game.STATE_PLAYING_DISPLAY_BET_SCORE);
+        });
     }
 
     displayBetScore(score) {
+        const guiContext = this.fg.findChildrenByType(GUIContext);
+        guiContext.displayComparison(score);
         this.gui.addChild(new GUIBetScore({
             game: this,
             score: score
@@ -290,60 +329,48 @@ export default class Game {
 
         this.fg.update(this);
         this.gui.update(this);
-        if (this.gameState === Game.STATE_PLAYING) {
-            if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
-                if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                    this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
-                }
-            } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_BET_SCORE) {
-
-                let scoreLayout = this.gui.findChildrenByType(GUIBetScore);
-                if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                    if (scoreLayout.hasWon()) {
-                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
-                    } else {
-                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+        if (!this._hasChangedPlayingState) {
+            if (this.gameState === Game.STATE_PLAYING) {
+                if (this.playingGameState === Game.STATE_PLAYING_CHOOSE_CARDS) {
+                    if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
                     }
-                }
-
-            } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-                let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
-                if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                    if (!scoreLayout.playerCombo || scoreLayout.playerCombo.type < 2) {
-                        if (scoreLayout.playerCombo) {
-                            this.tokenCount += this.betCount;
+                } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_BET_SCORE) {
+                    let scoreLayout = this.gui.findChildrenByType(GUIBetScore);
+                    if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        if (scoreLayout.hasWon()) {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                        } else {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
                         }
-                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
-                    } else {
-                        this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                    }
+
+                } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
+                    let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
+                    if (scoreLayout && scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
+                        if (!scoreLayout.hasWon()) {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                        } else {
+                            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
+                        }
                     }
                 }
             }
-        }
 
-        if (this.gameState === Game.STATE_IDLE) {
-            this.gameState = Game.STATE_PLAYING;
-            this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+            if (this.gameState === Game.STATE_IDLE) {
+                this.gameState = Game.STATE_PLAYING;
+                this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+            }
         }
 
         this.renderer.render(this.renderingContainer);
         Keyboard.update();
+        this._hasChangedPlayingState = false;
     }
 
     getCardComboList() {
         return new CardComboList(this.river.getCards());
     }
-
-    commitChanges() {
-        const cards = this.river.selectedCardsToBeChanged.splice(0, this.river.selectedCardsToBeChanged.length);
-        const cardsLen = cards.length;
-        for (let index = 0; index < cardsLen; index++) {
-            this.river.removeCard(cards[index]);
-            cards[index].destroy(); 
-        }
-        this.distribute(cardsLen);
-    }
-
 
     /**
      * 
@@ -368,6 +395,7 @@ Game.STATE_INTRO = 1;
 Game.STATE_PLAYING = 2;
 Game.STATE_GAMEOVER = 4;
 
+Game.STATE_PLAYING_CARD_TRANSITION = 0;
 Game.STATE_PLAYING_CHOOSE_BET = 1;
 Game.STATE_PLAYING_CHOOSE_CARDS = 2;
 Game.STATE_PLAYING_EXCHANGE_CARD_TRANSITION = 3;

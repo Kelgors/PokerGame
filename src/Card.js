@@ -18,6 +18,16 @@ export default class Card extends PIXI.Container {
     cardPicture.height = options.height;
     this.addChild(this.highlightGraphics);
     this.addChild(cardPicture);
+    this.animation = null;
+  }
+
+  setAnimation(animation) {
+    if (this.animation) this.animation.destroy();
+    this.animation = animation;
+  }
+
+  update(game) {
+    if (this.animation) this.animation.update(this);
   }
 
   highlight() {

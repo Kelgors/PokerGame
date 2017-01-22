@@ -2,6 +2,7 @@ import ContextualBox from '../ContextualBox';
 import Rect from '../../lib/Rect';
 import LinearLayout from '../LinearLayout';
 import {CardCombo} from '../../CardComboList';
+import {Score} from '../../Score';
 import i18n from '../../i18n';
 
 export default class ContextualDisplayer extends ContextualBox {
@@ -74,6 +75,29 @@ export default class ContextualDisplayer extends ContextualBox {
         let comboName = 'NoCombo';
         if (combo) comboName = combo.getTypeName();
         row.addChild(new PIXI.Text(`"${i18n.t('ComboType.' + comboName)}"`, textStyle));
+
+        row.updateChildrenPosition();
+        row.y = row.height / 2;
+        this.addChild(row);
+    }
+
+    displayComparison(score) {
+        this.removeChildren();
+        const row = new LinearLayout();
+        row.x = 30;
+
+        const textStyle = {
+            fill: 0xffa172,
+            stroke: 0,
+            strokeThickness: 3,
+            fontSize: 18
+        };
+
+        let comparisonName = i18n.t('Defeat');
+        if (score === Score.WON) comparisonName = i18n.t('Victory');
+        else if (score === Score.DRAW) comparisonName = i18n.t('Draw');
+
+        row.addChild(new PIXI.Text(`"${comparisonName}"`, textStyle));
 
         row.updateChildrenPosition();
         row.y = row.height / 2;
