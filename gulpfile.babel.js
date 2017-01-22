@@ -7,7 +7,10 @@ import './gulp/http';
 gulp.task('watch:js', function () {
   gulp.watch('./src/**/*.js', [ 'build:js:src' ]);
 });
-gulp.task('watch', [ 'watch:js' ]);
+gulp.task('watch:css', function () {
+  gulp.watch('./sass/**/*.sass', [ 'build:sass' ]);
+});
+gulp.task('watch', [ 'watch:js', 'watch:css' ]);
 
-gulp.task('build', [ 'build:js', 'build:assets' ]);
+gulp.task('build', [ 'build:js', 'build:assets', 'build:sass' ]);
 gulp.task('default', [ 'build' ]);
