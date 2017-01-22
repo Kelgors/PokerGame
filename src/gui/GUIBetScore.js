@@ -5,8 +5,8 @@ import TransformAnimation from '../lib/TransformAnimation';
 import BezierEasing from '../lib/BezierEasing';
 import AbsScoreLayout from './AbsScoreLayout';
 import GUIText from '../lib/GUIText';
-import {Resolver} from '../Score';
-import {CardCombo, ComboType} from '../CardComboList';
+import {Resolver} from '../utils/Score';
+import {CardCombo, ComboType} from '../cards/CardComboList';
 
 export default class GUIBetScore extends AbsScoreLayout {
 

@@ -1,8 +1,8 @@
 import ContextualBox from '../ContextualBox';
 import Rect from '../../lib/Rect';
-import LinearLayout from '../LinearLayout';
-import {CardCombo} from '../../CardComboList';
-import {Score} from '../../Score';
+import LinearLayout from '../../containers/LinearLayout';
+import {CardCombo} from '../../cards/CardComboList';
+import {Score} from '../../utils/Score';
 import i18n from '../../i18n';
 
 export default class ContextualDisplayer extends ContextualBox {

@@ -2,7 +2,7 @@ import PIXI from 'pixi.js';
 import Keyboard from '../lib/Keyboard';
 import Game from '../Game';
 
-import CardsGenerator from '../CardsGenerator';
+import CardsGenerator from '../cards/CardsGenerator';
 
 export default class GUICardSelector extends PIXI.Graphics {
     constructor(x, y) {

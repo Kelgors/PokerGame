@@ -1,5 +1,5 @@
 import PIXI from 'pixi.js';
-import UpdatableContainer from '../containers/UpdatableContainer';
+import UpdatableContainer from './UpdatableContainer';
 
 export default class LinearLayout extends UpdatableContainer {
 

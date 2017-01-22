@@ -1,16 +1,19 @@
 import Keyboard from './lib/Keyboard';
 import Tracker from './Tracker';
 import i18n from './i18n';
-import Numbers from './Numbers';
-import Async from './Async';
+import Numbers from './utils/Numbers';
+import Async from './utils/Async';
+import {Resolver,Score} from './utils/Score';
 
 import UpdatableContainer from './containers/UpdatableContainer';
-import LinearLayout from './gui/LinearLayout';
+import LinearLayout from './containers/LinearLayout';
+import AbsCardArea from './containers/AbsCardArea';
+import CardRiverArea from './containers/CardRiverArea';
+import CardBetArea from './containers/CardBetArea';
 
-import CardCollection from './CardCollection';
-import CardsGenerator from './CardsGenerator';
-import {CardComboList,CardCombo,ComboType} from './CardComboList';
-import {Resolver,Score} from './Score';
+import CardCollection from './cards/CardCollection';
+import CardsGenerator from './cards/CardsGenerator';
+import {CardComboList,CardCombo,ComboType} from './cards/CardComboList';
 
 import GUICardSelector from './gui/GUICardSelector';
 import AbsScoreLayout from './gui/AbsScoreLayout';
@@ -18,10 +21,6 @@ import GUIScoreLayout from './gui/GUIScoreLayout';
 import GUIBetScore from './gui/GUIBetScore';
 import GUIContext from './gui/GUIContext';
 import TopMenuLayout from './gui/TopMenuLayout';
-
-import AbsCardArea from './containers/AbsCardArea';
-import CardRiverArea from './containers/CardRiverArea';
-import CardBetArea from './containers/CardBetArea';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
 

@@ -1,8 +1,8 @@
 import PIXI from 'pixi.js';
-import LinearLayout from '../gui/LinearLayout';
-import CardsGenerator from '../CardsGenerator';
-import CardCollection from '../CardCollection';
-import Card from '../Card';
+import LinearLayout from './LinearLayout';
+import CardsGenerator from '../cards/CardsGenerator';
+import CardCollection from '../cards/CardCollection';
+import Card from '../cards/Card';
 
 export default class AbsCardArea extends LinearLayout {
 

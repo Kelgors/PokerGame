@@ -1,10 +1,10 @@
 import PIXI from 'pixi.js';
 import ContextualBox from '../ContextualBox';
 import Rect from '../../lib/Rect';
-import LinearLayout from '../LinearLayout';
-import {ComboType} from '../../CardComboList';
+import LinearLayout from '../../containers/LinearLayout';
+import {ComboType} from '../../cards/CardComboList';
 import i18n from '../../i18n';
-import Numbers from '../../Numbers';
+import Numbers from '../../utils/Numbers';
 import GUIComboTypeItem from './GUIComboTypeItem';
 
 export default class GUIComboTypesList extends ContextualBox {

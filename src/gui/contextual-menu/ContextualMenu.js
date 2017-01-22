@@ -1,7 +1,7 @@
 import ContextualBox from '../ContextualBox';
 import Rect from '../../lib/Rect';
 import GUICursor from './GUICursor';
-import LinearLayout from '../LinearLayout';
+import LinearLayout from '../../containers/LinearLayout';
 import Keyboard from '../../lib/Keyboard';
 
 const MENU_ITEM_FONT_SIZE = {

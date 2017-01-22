@@ -1,6 +1,6 @@
 import PIXI from 'pixi.js';
 import AbsCardArea from './AbsCardArea';
-import CardsGenerator from '../CardsGenerator';
+import CardsGenerator from '../cards/CardsGenerator';
 import TransformAnimation from '../lib/TransformAnimation';
 
 export default class CardRiverArea extends AbsCardArea {

@@ -1,6 +1,6 @@
 import CardCollection from './CardCollection';
-import Arrays from './Arrays';
-import Numbers from './Numbers';
+import Arrays from '../utils/Arrays';
+import Numbers from '../utils/Numbers';
 
 /** @type {Object.<string, number>} */
 export var ComboType = {

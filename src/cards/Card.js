@@ -1,6 +1,6 @@
 import PIXI from 'pixi.js';
 import CardsGenerator from './CardsGenerator';
-import BezierEasing from './lib/BezierEasing';
+import BezierEasing from '../lib/BezierEasing';
 
 export default class Card extends PIXI.Container {
 

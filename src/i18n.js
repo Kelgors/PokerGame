@@ -1,4 +1,4 @@
-import {ComboType} from './CardComboList';
+import {ComboType} from './cards/CardComboList';
 
 let languages = [];
 let currentLang = null;

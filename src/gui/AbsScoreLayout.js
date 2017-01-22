@@ -1,5 +1,5 @@
 import UpdatableContainer from '../containers/UpdatableContainer';
-import {Score} from '../Score';
+import {Score} from '../utils/Score';
 import i18n from '../i18n';
 import GUIText from '../lib/GUIText';
 import {BigText} from '../Config';

@@ -1,6 +1,6 @@
 import PIXI from 'pixi.js';
 import i18n from '../../i18n';
-import {ComboType} from '../../CardComboList';
+import {ComboType} from '../../cards/CardComboList';
 import {GuiText} from '../../Config';
 
 export default class GUIComboTypeItem extends PIXI.Container {

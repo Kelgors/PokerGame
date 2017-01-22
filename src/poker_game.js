@@ -1,5 +1,4 @@
 import Game from './Game';
-import Card from './Card';
 import Tracker from './Tracker';
 import {version} from '../package.json';
 
