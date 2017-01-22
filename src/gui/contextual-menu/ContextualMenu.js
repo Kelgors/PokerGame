@@ -74,11 +74,11 @@ export default class ContextualMenu extends ContextualBox {
         super.update(game);
         if (this.hasCursor()) {
             this.currentCursor.update(game);
-            if (Keyboard.isKeyReleased(Keyboard.UP_ARROW)) {
+            if (Keyboard.isKeyPushed(Keyboard.UP_ARROW)) {
                 this.setCursorIndex(this.currentCursorIndex - 1);
-            } else if (Keyboard.isKeyReleased(Keyboard.DOWN_ARROW)) {
+            } else if (Keyboard.isKeyPushed(Keyboard.DOWN_ARROW)) {
                 this.setCursorIndex(this.currentCursorIndex + 1);
-            } else if (Keyboard.isKeyReleased(Keyboard.ENTER)) {
+            } else if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
                 let item = this.getChildAt(0).getChildAt(this.currentCursorIndex);
                 if (item && item.menuItemCallback) item.menuItemCallback();
             }

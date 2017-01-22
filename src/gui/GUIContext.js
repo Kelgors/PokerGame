@@ -39,6 +39,11 @@ export default class GUIContext extends UpdatableContainer {
         return this._height;
     }
 
+    clearBoxes() {
+        this.getChildAt(0).removeChildren();
+        this.getChildAt(1).removeChildren();
+    }
+
     displayControls() {
         this.getChildAt(0).displayControls();
         this.getChildAt(1).removeChildren();
@@ -46,6 +51,11 @@ export default class GUIContext extends UpdatableContainer {
 
     displayCombo(combo) {
         this.getChildAt(0).displayCombo(combo);
+        this.getChildAt(1).removeChildren();
+    }
+
+    displayComparison(score) {
+        this.getChildAt(0).displayComparison(score);
         this.getChildAt(1).removeChildren();
     }
 

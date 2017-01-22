@@ -52,8 +52,9 @@ class CardsGenerator {
     }
 }
 
-CardsGenerator.CARD_WIDTH = 370 / 4;
-CardsGenerator.CARD_HEIGHT = 522 / 4;
+//167.087 242.667
+CardsGenerator.CARD_WIDTH = 167.087*2/3;//370 / 4;
+CardsGenerator.CARD_HEIGHT = 242.667*2/3;//522 / 4;
 CardsGenerator.RED_JOKER = 'RedJoker';
 CardsGenerator.BLACK_JOKER = 'BlackJoker';
 CardsGenerator.JOKER_VALUE = 13;
