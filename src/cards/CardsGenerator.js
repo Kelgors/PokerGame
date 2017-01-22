@@ -12,6 +12,17 @@ class CardsGenerator {
         if (!cardsTexture) throw new Error('CardsGenerator needs CardTexture');
     }
 
+    destroy() {
+        console.log('destroying all card textures');
+        try {
+            for (const key in this.cardsTexture) {
+                this.cardsTexture[key].destroy(true);
+            }
+        } catch (err) {
+            console.log(err.toString());
+        }
+    }
+
     toAssetName(value, suit) {
         if (suit === CardsGenerator.RED_JOKER) return 'red_joker';
         if (suit === CardsGenerator.BLACK_JOKER) return 'black_joker';

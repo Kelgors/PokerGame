@@ -1,0 +1,34 @@
+$form_field_border_color: black
+$checkbox_color: red
+#settings-screen
+    .screen-body
+        background: white
+        margin: 20px 0
+        height: calc(100% - 40px)
+    .field-container
+        padding: 10px
+        border: 1px solid black
+
+    .checkbox-container
+        $checkbox_size: 15px
+        cursor: pointer
+        padding: 2px 0px
+        &[aria-checked="true"]
+            .checkbox-square
+                background: $checkbox_color
+        .checkbox-square-container
+            background: white
+            width: $checkbox_size
+            height: $checkbox_size
+            box-sizing: border-box
+            border: 1px solid $form_field_border_color
+            padding: 1px
+            float: left
+            margin-right: 5px
+            border-radius: 2px
+        .checkbox-square
+            background: transparent
+            width: 100%
+            height: 100%
+        .checkbox-label
+            font-size: 12px

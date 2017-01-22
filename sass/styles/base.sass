@@ -1,0 +1,38 @@
+html, body
+    position: relative
+    width: 100%
+    height: 100%
+    padding: 0
+    margin: 0
+    background: green
+
+body > footer
+    position: absolute
+    bottom: 2px
+    right: 2px
+    color: white
+    font-family: Tahoma
+    font-size: 10px
+
+#viewport
+    overflow: hidden
+    position: relative
+    width: 100%
+    height: 100%
+    margin: 0 auto
+
+.screen
+    position: absolute
+    top: 0
+    left: 0
+    bottom: 0
+    right: 0
+    margin: auto
+    transform: translateX(-100%)
+    transition: transform 1s ease
+    &.displayed
+        transform: translateX(0%)
+.screen-body
+    width: 100%
+    height: 100%
+    box-sizing: border-box

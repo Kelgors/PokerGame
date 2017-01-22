@@ -5,28 +5,23 @@ import rename from 'gulp-rename';
 import sass from 'gulp-sass';
 import cleanCss from 'gulp-clean-css';
 
-const OUTPUT_DIR = 'dist/themes';
+const OUTPUT_DIR = 'website/';
 
-function _generate(srcFiles, themeName) {
+function _generate(srcFiles, outputName) {
   return gulp.src(srcFiles)
     .pipe(plumber())
     .pipe(sass({
       outputStyle: 'expanded'
     }))
-    .pipe(concat(`${themeName}.css`))
+    .pipe(concat(`${outputName}.css`))
     .pipe(gulp.dest(OUTPUT_DIR))
-    .pipe(rename(`${themeName}.min.css`))
+    .pipe(rename(`${outputName}.min.css`))
     .pipe(cleanCss())
     .pipe(gulp.dest(OUTPUT_DIR))
     ;
 }
 
-const TASKS_NAME = [ 'default', 'empty' ].map((themeName) => {
-  const TASK_NAME = `build:sass:${themeName}`;
-  gulp.task(TASK_NAME, () => {
-    return _generate(`src/styles/${themeName}/*.sass`, themeName);
-  });
-  return TASK_NAME;
-});
 
-gulp.task('build:sass', TASKS_NAME);
+gulp.task('build:sass', function () {
+  _generate('sass/index.sass', 'index');
+});

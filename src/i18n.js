@@ -8,8 +8,15 @@ export default {
         languages = langs;
         currentLang = languages[0];
     },
+    getDefaultLang() {
+        return currentLang = languages.find((d) => d.Lang === 'EN');
+    },
     setLang(lang) {
         currentLang = languages.find((d) => d.Lang === lang);
+        if (!currentLang) {
+            console.log('Language ' + String(lang) + ' isnt available. Set default language');
+            currentLang = this.getDefaultLang();
+        }
     },
     t(chainedName) {
         const names = chainedName.split('.');

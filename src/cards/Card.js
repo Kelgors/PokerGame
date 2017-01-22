@@ -23,9 +23,8 @@ export default class Card extends PIXI.Container {
   }
 
   destroy() {
-    //console.log('destroy', this.toString());
     this.setAnimation(null);
-    super.destroy();
+    super.destroy({ texture: false, baseTexture: false });
   }
 
   setAnimation(animation) {
@@ -99,5 +98,5 @@ export default class Card extends PIXI.Container {
 
 }
 
-Card.TRANSITION_IN_DURATION = 200;
-Card.TRANSITION_OUT_DURATION = 200;
+Card.TRANSITION_IN_DURATION = 100;
+Card.TRANSITION_OUT_DURATION = 100;

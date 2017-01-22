@@ -1,4 +1,5 @@
 import PIXI from 'pixi.js';
+import i18n from '../i18n';
 import AbsCardArea from './AbsCardArea';
 import CardsGenerator from '../cards/CardsGenerator';
 import TransformAnimation from '../lib/TransformAnimation';
@@ -30,7 +31,7 @@ export default class CardRiverArea extends AbsCardArea {
      */
     _generateKeepTexts() {
         for (let index = 0, text; index < this.cardSlots; index++) {
-            text = new PIXI.Text('GARDER', { fill: 0x000000, fontSize: 16 });
+            text = new PIXI.Text(i18n.t('Keep'), { fill: 0x000000, fontSize: 16 });
             this.keepTexts.push(text);
             this.addChild(text);
         }

@@ -1,3 +1,4 @@
+import PIXI from 'pixi.js';
 import Keyboard from './lib/Keyboard';
 import Tracker from './Tracker';
 import i18n from './i18n';
@@ -24,6 +25,8 @@ import GUIContext from './gui/GUIContext';
 import TopMenuLayout from './gui/TopMenuLayout';
 
 const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
+ticker.autoStart = false;
+ticker.stop();
 
 export default class Game {
 
@@ -77,9 +80,11 @@ export default class Game {
 
     destroy() {
         this.clearGame();
+        this.cardsGenerator.destroy();
         this.fg.destroy({ children: true });
         this.gui.destroy({ children: true });
         this.renderer.destroy();
+        this.cardsGenerator = null;
         this.fg = null;
         this.gui = null;
         this.renderer = null;
@@ -372,9 +377,13 @@ export default class Game {
             }
         }
 
-        this.renderer.render(this.renderingContainer);
+        this.render();
         Keyboard.update();
         this._hasChangedPlayingState = false;
+    }
+
+    render() {
+        this.renderer.render(this.renderingContainer);
     }
 
     getCardComboList() {

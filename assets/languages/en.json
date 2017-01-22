@@ -6,6 +6,7 @@
     "Yes": "Yes",
     "No": "No",
     "TotalToken": "Total token",
+    "Keep": "KEEP",
     "ComboType": {
         "NoCombo": "No pairs",
         "HigherCard": "High Card",

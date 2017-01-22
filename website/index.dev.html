@@ -6,7 +6,32 @@
         <link rel="stylesheet" href="index.css" type="text/css">
     </head>
     <body>
-        <section id="viewport"></section>
+        <section id="viewport">
+            <div id="intro-screen" class="screen"></div>
+            <div id="play-screen" class="screen"></div>
+            <div id="settings-screen" class="screen">
+                <div class="screen-body">
+                    <div class="field-container checkbox-container" role="checkbox" aria-checked="false">
+                        <div class="checkbox-square-container"><div class="checkbox-square"></div></div>
+                        <label></label>
+                    </div>
+                    <div class="field-container">
+                        <select id="form-lang">
+                            <option value="en">English</option>
+                            <option value="fr">Français</option>
+                        </select>
+                        <label></label>
+                    </div>
+                    <div class="field-container">
+                        <select id="form-speed">
+                            <option value="fast">Fast</option>
+                            <option value="slow">Slow</option>
+                        </select>
+                        <label></label>
+                    </div>
+                </div>
+            </div>
+        </section>
         <footer>
             <span class="last-update">Last update: <time id="timestamp">18 Jan 2017 02:31</time></span>
             <span class="version">Version: <span id="version-name">PRE-Alpha</span></span>
