@@ -30,4 +30,4 @@ export default class TopMenuLayout extends UpdatableContainer {
 
     getWidth() { return this._width; }
     getHeight() { return this._height; }
-};
+}

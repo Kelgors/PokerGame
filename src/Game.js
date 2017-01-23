@@ -4,7 +4,7 @@ import Tracker from './Tracker';
 import i18n from './i18n';
 import Numbers from './utils/Numbers';
 import Async from './utils/Async';
-import {Resolver,Score} from './utils/Score';
+import { Resolver, Score } from './utils/Score';
 
 import UpdatableContainer from './containers/UpdatableContainer';
 import LinearLayout from './containers/LinearLayout';
@@ -15,7 +15,7 @@ import CardBetArea from './containers/CardBetArea';
 import Card from './cards/Card';
 import CardCollection from './cards/CardCollection';
 import CardsGenerator from './cards/CardsGenerator';
-import {CardComboList,CardCombo,ComboType} from './cards/CardComboList';
+import { CardComboList, CardCombo, ComboType } from './cards/CardComboList';
 
 import GUICardSelector from './gui/GUICardSelector';
 import AbsScoreLayout from './gui/AbsScoreLayout';
@@ -24,7 +24,7 @@ import GUIBetScore from './gui/GUIBetScore';
 import GUIContext from './gui/GUIContext';
 import TopMenuLayout from './gui/TopMenuLayout';
 
-const ticker = PIXI.ticker.shared;//new PIXI.ticker.Ticker();
+const ticker = PIXI.ticker.shared;// new PIXI.ticker.Ticker();
 ticker.autoStart = false;
 ticker.stop();
 
@@ -63,7 +63,7 @@ export default class Game {
             resolution: options.resolution || 1,
             clearBeforeRender: true,
             backgroundColor: options.backgroundColor,
-            roundPixels: options.roundPixels || true
+            roundPixels: options.roundPixels || true,
         };
         this.renderer = PIXI.autoDetectRenderer(options.width || 800, options.height || 600, rendererOptions, false);
         /** @type {HTMLElement} */
@@ -104,13 +104,13 @@ export default class Game {
         this.gameState = Game.STATE_IDLE;
         const stageWidth = this.renderer.width;
         const stageHeight = this.renderer.height;
-        this.river = new CardRiverArea(stageWidth/2, stageHeight*0.46);
-        this.betRiver = new CardBetArea(stageWidth/2, stageHeight/2);
+        this.river = new CardRiverArea(stageWidth / 2, stageHeight * 0.46);
+        this.betRiver = new CardBetArea(stageWidth / 2, stageHeight / 2);
         this.river.visible = false;
         this.betRiver.visible = false;
         this.fg.addChild(this.river);
         this.fg.addChild(this.betRiver);
-        const contextualBox = new GUIContext(0, stageHeight * 5/6, this);
+        const contextualBox = new GUIContext(0, stageHeight * 5 / 6, this);
         const topMenu = new TopMenuLayout(0, 0, this);
 
         this.fg.addChild(contextualBox);
@@ -126,11 +126,11 @@ export default class Game {
         this.river.clearCards();
         if (this.cards) this.cards.destroy();
         this.cards = this.cardsGenerator.generateCards();
-        let iteration = Numbers.clamp(Math.floor(Math.random() * 14), 2, 14);
+        const iteration = Numbers.clamp(Math.floor(Math.random() * 14), 2, 14);
         for (let index = 0; index < iteration; index++) {
             this.cards.shuffle();
         }
-        //console.log('shuffle %s times', iteration);
+        // console.log('shuffle %s times', iteration);
     }
 
     /**
@@ -168,7 +168,7 @@ export default class Game {
 
     displayCardCursorSelection() {
         const p = this.river.getCardAt(0);
-        const cursor = new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25)
+        const cursor = new GUICardSelector(p.x + CardsGenerator.CARD_WIDTH / 2, p.y + CardsGenerator.CARD_HEIGHT + 25);
         cursor.setCursorCardIndex(this, 0);
         this.gui.addChild(cursor);
     }
@@ -259,7 +259,7 @@ export default class Game {
             });
             Tracker.track('combo', {
                 type: combo.getTypeName(),
-                cards: combo.getCards().map(String)
+                cards: combo.getCards().map(String),
             });
             if (Score.WON === score) {
                 this.betCount = this.originalBetCount * combo.type;
@@ -268,8 +268,8 @@ export default class Game {
         this.fg.findChildrenByType(GUIContext).displayCombo(combo);
         this.gui.addChild(new GUIScoreLayout({
             playerCombo: combo,
-            iaCombo: iaCombo,
-            game: this
+            iaCombo,
+            game: this,
         }));
     }
 
@@ -294,7 +294,7 @@ export default class Game {
         guiContext.displayComparison(score);
         this.gui.addChild(new GUIBetScore({
             game: this,
-            score: score
+            score,
         }));
     }
 
@@ -349,7 +349,7 @@ export default class Game {
                         this.setPlayingState(Game.STATE_PLAYING_DISPLAY_RIVER_SCORE);
                     }
                 } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_BET_SCORE) {
-                    let scoreLayout = this.gui.findChildrenByType(GUIBetScore);
+                    const scoreLayout = this.gui.findChildrenByType(GUIBetScore);
                     if (scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
                         if (scoreLayout.hasWon()) {
                             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_RISK);
@@ -357,9 +357,8 @@ export default class Game {
                             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
                         }
                     }
-
                 } else if (this.playingGameState === Game.STATE_PLAYING_DISPLAY_RIVER_SCORE) {
-                    let scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
+                    const scoreLayout = this.gui.findChildrenByType(GUIScoreLayout);
                     if (scoreLayout && scoreLayout.scoreState === AbsScoreLayout.STATE_TRANSITION_TERMINATED || Keyboard.isKeyPushed(Keyboard.ENTER)) {
                         if (!scoreLayout.hasWon()) {
                             this.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
@@ -390,7 +389,7 @@ export default class Game {
     }
 
     /**
-     * 
+     *
      * @param {Function} GuiClass - The GuiClass to instantiate
      * @param {boolean=} swt - true will create an instance if it doesnt exists, false will destroy it
      */
@@ -405,7 +404,7 @@ export default class Game {
         }
     }
 
-};
+}
 
 Game.STATE_IDLE = 0;
 Game.STATE_INTRO = 1;

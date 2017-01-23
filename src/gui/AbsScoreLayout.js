@@ -1,8 +1,8 @@
 import UpdatableContainer from '../containers/UpdatableContainer';
-import {Score} from '../utils/Score';
+import { Score } from '../utils/Score';
 import i18n from '../i18n';
 import GUIText from '../lib/GUIText';
-import {BigText} from '../Config';
+import { BigText } from '../Config';
 import TransformAnimation from '../lib/TransformAnimation';
 import BezierEasing from '../lib/BezierEasing';
 
@@ -42,7 +42,7 @@ export default class AbsScoreLayout extends UpdatableContainer {
     mUpdateChildrenPosition() {
         for (let index = 0; index < this.children.length; index++) {
             const child = this.children[index];
-            child.x = this.rendererWidth*3/4 + child.width / 2 + 1;
+            child.x = this.rendererWidth * 3 / 4 + child.width / 2 + 1;
             child.y = this.rendererHeight * 0.3;
             child.alpha = 0;
         }
@@ -73,31 +73,31 @@ export default class AbsScoreLayout extends UpdatableContainer {
     getInAnimation(sprite, callback) {
         return new TransformAnimation({
             posFrom: new PIXI.Point(sprite.x, sprite.y),
-            posTo: new PIXI.Point(this.rendererWidth/2-sprite.width/2, sprite.y),
+            posTo: new PIXI.Point(this.rendererWidth / 2 - sprite.width / 2, sprite.y),
             alphaFrom: 0,
             alphaTo: 1,
             duration: this.transitionDuration,
             callback: () => {
                 sprite.setAnimation(null);
                 if (callback) callback();
-            }
+            },
         });
     }
 
     getOutAnimation(sprite, callback) {
         return new TransformAnimation({
             posFrom: new PIXI.Point(sprite.x, sprite.y),
-            posTo: new PIXI.Point(this.rendererWidth*1/6-sprite.width/2, sprite.y),
+            posTo: new PIXI.Point(Number(this.rendererWidth) / 6 - sprite.width / 2, sprite.y),
             alphaFrom: 1,
             alphaTo: 0,
             duration: this.transitionDuration,
             callback: () => {
                 sprite.setAnimation(null);
                 if (callback) callback();
-            }
+            },
         });
     }
-};
+}
 
 AbsScoreLayout.STATE_TRANSITION_IDLE = 0;
 AbsScoreLayout.STATE_TRANSITION_SUIT = 1;

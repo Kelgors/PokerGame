@@ -27,7 +27,7 @@ export default class GUIContext extends UpdatableContainer {
 
     update(game) {
         this._width = game.renderer.width - MARGIN_HONRIZONTAL * 2;
-        this._height = game.renderer.height - this.y - MARGIN_VERTICAL; 
+        this._height = game.renderer.height - this.y - MARGIN_VERTICAL;
         super.update(game);
     }
 
@@ -64,15 +64,15 @@ export default class GUIContext extends UpdatableContainer {
         this.getChildAt(1).displayMenu([
             {
                 label: i18n.t('Yes'),
-                callback: () => this.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN)
+                callback: () => this.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_UP_OR_DOWN),
             },
             {
                 label: i18n.t('No'),
                 callback: () => {
                     this.game.tokenCount += this.game.betCount;
-                    this.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS)
-                }
-            }
+                    this.game.setPlayingState(Game.STATE_PLAYING_CHOOSE_CARDS);
+                },
+            },
         ]);
     }
 
@@ -81,12 +81,12 @@ export default class GUIContext extends UpdatableContainer {
         this.getChildAt(1).displayMenu([
             {
                 label: i18n.t('Bet.Up'),
-                callback: () => callback('up')
+                callback: () => callback('up'),
             },
             {
                 label: i18n.t('Bet.Down'),
-                callback: () => callback('down')
-            }
+                callback: () => callback('down'),
+            },
         ]);
     }
 

@@ -1,7 +1,7 @@
 import PIXI from 'pixi.js';
 import i18n from '../../i18n';
-import {ComboType} from '../../cards/CardComboList';
-import {GuiText} from '../../Config';
+import { ComboType } from '../../cards/CardComboList';
+import { GuiText } from '../../Config';
 
 export default class GUIComboTypeItem extends PIXI.Container {
     constructor(options) {
@@ -21,4 +21,4 @@ export default class GUIComboTypeItem extends PIXI.Container {
         factorText.x = this.parentWidth - 50;
         this.addChild(factorText);
     }
-};
+}

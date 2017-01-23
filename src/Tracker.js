@@ -1,6 +1,6 @@
 const _trackerIsUndefined = typeof mixpanel === 'undefined';
 const isMe = !!localStorage.getItem('isMe');
-const stopTracking = _trackerIsUndefined || !!localStorage.getItem('StopTracking') || /localhost\:8080/.test(location.toString());
+const stopTracking = _trackerIsUndefined || !!localStorage.getItem('StopTracking') || (/localhost\:8080/).test(location.toString());
 
 if (stopTracking) console.log('stop-tracking');
 
@@ -17,6 +17,6 @@ export default {
     track(eventName, properties, callback) {
         if (stopTracking) return;
         mixpanel.track(eventName, properties, callback);
-    }
+    },
 };
 

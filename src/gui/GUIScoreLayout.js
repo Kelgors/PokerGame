@@ -1,12 +1,12 @@
 import PIXI from 'pixi.js';
 import i18n from '../i18n';
-import {BigText} from '../Config';
+import { BigText } from '../Config';
 import TransformAnimation from '../lib/TransformAnimation';
 import BezierEasing from '../lib/BezierEasing';
 import AbsScoreLayout from './AbsScoreLayout';
 import GUIText from '../lib/GUIText';
-import {Resolver} from '../utils/Score';
-import {CardCombo, ComboType} from '../cards/CardComboList';
+import { Resolver } from '../utils/Score';
+import { CardCombo, ComboType } from '../cards/CardComboList';
 
 export default class GUIScoreLayout extends AbsScoreLayout {
 
@@ -19,7 +19,7 @@ export default class GUIScoreLayout extends AbsScoreLayout {
     constructor(options) {
         super({
             score: Resolver.compareCombos(options.playerCombo, options.iaCombo),
-            game: options.game
+            game: options.game,
         });
         /** @type {CardCombo} */
         this.playerCombo = options.playerCombo;
@@ -30,7 +30,7 @@ export default class GUIScoreLayout extends AbsScoreLayout {
         this.spawnComparison();
         this.mUpdateChildrenPosition();
     }
-    
+
     destroy() {
         super.destroy();
         this.isDestroyed = true;
@@ -39,7 +39,7 @@ export default class GUIScoreLayout extends AbsScoreLayout {
     spawnSuitName() {
         let comboName = 'NoCombo';
         if (this.playerCombo) comboName = this.playerCombo.getTypeName();
-        this.addChild(new GUIText(i18n.t('ComboType.' + comboName), BigText.textConfig));
+        this.addChild(new GUIText(i18n.t(`ComboType.${comboName}`), BigText.textConfig));
     }
 
     getSuitText() {
@@ -79,7 +79,5 @@ export default class GUIScoreLayout extends AbsScoreLayout {
         }
     }
 
-
 }
-
 

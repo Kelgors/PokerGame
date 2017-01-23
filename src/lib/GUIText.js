@@ -4,7 +4,7 @@ import TransformAnimation from './TransformAnimation';
 export default class GUIText extends PIXI.Text {
     constructor(text, textStyle) {
         super(text, textStyle);
-        this.tags = [ 'gui' ];
+        this.tags = ['gui'];
         this.animation = null;
     }
 

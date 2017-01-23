@@ -1,4 +1,4 @@
-import {ComboType} from './cards/CardComboList';
+import { ComboType } from './cards/CardComboList';
 
 let languages = [];
 let currentLang = null;
@@ -14,7 +14,7 @@ export default {
     setLang(lang) {
         currentLang = languages.find((d) => d.Lang === lang);
         if (!currentLang) {
-            console.log('Language ' + String(lang) + ' isnt available. Set default language');
+            console.log(`Language ${String(lang)} isnt available. Set default language`);
             currentLang = this.getDefaultLang();
         }
     },
@@ -26,11 +26,10 @@ export default {
             if (keyName in currentObject) {
                 if (typeof currentObject[keyName] !== 'object') {
                     return currentObject[keyName];
-                } else {
-                    currentObject = currentObject[keyName];
                 }
+                currentObject = currentObject[keyName];
             }
         }
         return '';
-    }
+    },
 };

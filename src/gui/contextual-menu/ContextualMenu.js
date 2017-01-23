@@ -5,7 +5,7 @@ import LinearLayout from '../../containers/LinearLayout';
 import Keyboard from '../../lib/Keyboard';
 
 const MENU_ITEM_FONT_SIZE = {
-    2: 22
+    2: 22,
 };
 
 export default class ContextualMenu extends ContextualBox {
@@ -26,8 +26,8 @@ export default class ContextualMenu extends ContextualBox {
     drawBox(game) {
         /** @type {PIXI.Graphics} */
         const graphics = this;
-        this.x = this.parent.getWidth()*4/5;
-        const rect = new Rect(0, this.parent.getWidth()*1/5, this.parent.getHeight(), 0);
+        this.x = this.parent.getWidth() * 4 / 5;
+        const rect = new Rect(0, Number(this.parent.getWidth()) / 5, this.parent.getHeight(), 0);
         this._drawBox(graphics, rect);
     }
 
@@ -40,15 +40,15 @@ export default class ContextualMenu extends ContextualBox {
                 fontSize: MENU_ITEM_FONT_SIZE[menuItems.length],
                 fill: 0xffffff,
                 stroke: 0,
-                strokeThickness: 3
+                strokeThickness: 3,
             });
             menuitem.menuItemIndex = index;
             menuitem.menuItemCallback = menuDesc.callback;
             layout.addChild(menuitem);
         }
-        
+
         layout.updateChildrenPosition();
-        layout.x = this.width / 2- layout.width / 2;
+        layout.x = this.width / 2 - layout.width / 2;
         layout.y = layout.height / 2;
         this.addChild(layout);
         this.currentCursor = new GUICursor();
@@ -65,7 +65,7 @@ export default class ContextualMenu extends ContextualBox {
         if (this.currentCursor.x == 0) this.currentCursor.x = position.x - 15;
         this.currentCursorIndex = index;
     }
-    
+
     hasCursor() {
         return this.currentCursor !== null;
     }
@@ -79,7 +79,7 @@ export default class ContextualMenu extends ContextualBox {
             } else if (Keyboard.isKeyPushed(Keyboard.DOWN_ARROW)) {
                 this.setCursorIndex(this.currentCursorIndex + 1);
             } else if (Keyboard.isKeyPushed(Keyboard.ENTER)) {
-                let item = this.getChildAt(0).getChildAt(this.currentCursorIndex);
+                const item = this.getChildAt(0).getChildAt(this.currentCursorIndex);
                 if (item && item.menuItemCallback) item.menuItemCallback();
             }
         }

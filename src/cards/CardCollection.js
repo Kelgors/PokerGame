@@ -91,7 +91,7 @@ export default class CardCollection {
         const output = [];
         const input = this.toArray();
         while (input.length > 0) {
-            let index = Math.floor(Math.random() * input.length);
+            const index = Math.floor(Math.random() * input.length);
             output.push(input.splice(index, 1)[0]);
         }
         this.cards = output;
@@ -111,4 +111,4 @@ export default class CardCollection {
     toString() {
         return this.cards.toString();
     }
-};
+}

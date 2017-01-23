@@ -14,14 +14,14 @@ export default class ContextualBox extends PIXI.Graphics {
     update(game) {
         if (!this._isValid) {
             this.drawBox(game);
-            this._isValid=true;
+            this._isValid = true;
         }
     }
 
     drawBox(game) {}
 
-    invalidate(){
-        this._isValid=false;
+    invalidate() {
+        this._isValid = false;
     }
 
     _drawBox(graphics, rect) {

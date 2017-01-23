@@ -1,12 +1,12 @@
 import PIXI from 'pixi.js';
 import i18n from '../i18n';
-import {BigText} from '../Config';
+import { BigText } from '../Config';
 import TransformAnimation from '../lib/TransformAnimation';
 import BezierEasing from '../lib/BezierEasing';
 import AbsScoreLayout from './AbsScoreLayout';
 import GUIText from '../lib/GUIText';
-import {Resolver} from '../utils/Score';
-import {CardCombo, ComboType} from '../cards/CardComboList';
+import { Resolver } from '../utils/Score';
+import { CardCombo, ComboType } from '../cards/CardComboList';
 
 export default class GUIBetScore extends AbsScoreLayout {
 
@@ -21,7 +21,7 @@ export default class GUIBetScore extends AbsScoreLayout {
         this.spawnComparison();
         this.mUpdateChildrenPosition();
     }
-    
+
     destroy() {
         super.destroy();
         this.isDestroyed = true;
@@ -54,7 +54,5 @@ export default class GUIBetScore extends AbsScoreLayout {
         }
     }
 
-
 }
-
 

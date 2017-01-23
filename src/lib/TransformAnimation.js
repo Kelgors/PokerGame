@@ -18,18 +18,18 @@ export default class TransformAnimation {
     constructor(options) {
         this.posFrom = options.posFrom || null;
         this.posTo = options.posTo || null;
-        this.scaleFrom = !isNaN(options.scaleFrom) ? +options.scaleFrom : 1;
-        this.scaleTo = !isNaN(options.scaleTo) ? +options.scaleTo : 1;
-        this.rotationFrom = !isNaN(options.rotationFrom) ? +options.rotationFrom : 0;
-        this.rotationTo = !isNaN(options.rotationTo) ? +options.rotationTo : 0;
-        this.alphaFrom = !isNaN(options.alphaFrom) ? +options.alphaFrom : 1;
-        this.alphaTo = !isNaN(options.alphaTo) ? +options.alphaTo : 1;
-        this.pivot = options.pivot || new PIXI.Point(0,0);
+        this.scaleFrom = !isNaN(options.scaleFrom) ? Number(options.scaleFrom) : 1;
+        this.scaleTo = !isNaN(options.scaleTo) ? Number(options.scaleTo) : 1;
+        this.rotationFrom = !isNaN(options.rotationFrom) ? Number(options.rotationFrom) : 0;
+        this.rotationTo = !isNaN(options.rotationTo) ? Number(options.rotationTo) : 0;
+        this.alphaFrom = !isNaN(options.alphaFrom) ? Number(options.alphaFrom) : 1;
+        this.alphaTo = !isNaN(options.alphaTo) ? Number(options.alphaTo) : 1;
+        this.pivot = options.pivot || new PIXI.Point(0, 0);
 
         this.timer = new Timer(options.duration);
         this.duration = options.duration;
         this.callback = options.callback || function () {};
-        this.interpolator = options.interpolator || BezierEasing(0,0,1,1);
+        this.interpolator = options.interpolator || BezierEasing(0, 0, 1, 1);
     }
 
     /**
@@ -44,7 +44,7 @@ export default class TransformAnimation {
     }
 
     /**
-     * Update object position relative to 
+     * Update object position relative to
      */
     update(sprite) {
         if (!this.timer.isStarted) this.timer.start();
@@ -58,11 +58,11 @@ export default class TransformAnimation {
             this.scaleFrom + (this.scaleTo - this.scaleFrom) * ratio,
             this.rotationFrom + (this.rotationTo - this.rotationFrom) * ratio,
             0,
-            0, 
+            0,
             this.pivot.x,
             this.pivot.y
         );
-        sprite.alpha = this.alphaFrom + (this.alphaTo - this.alphaFrom) * ratio; 
+        sprite.alpha = this.alphaFrom + (this.alphaTo - this.alphaFrom) * ratio;
 
         if (rawRatio == 1) {
             this.callback(sprite);

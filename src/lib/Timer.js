@@ -31,7 +31,7 @@ export default class Timer {
 
     stop() {
         if (this.isStarted) {
-            this.ticker.remove(this.tick, this)
+            this.ticker.remove(this.tick, this);
             this.isStarted = false;
         }
     }
