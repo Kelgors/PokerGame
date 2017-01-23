@@ -5,7 +5,8 @@
   "author": "Kelgors",
   "license": "MIT",
   "scripts": {
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src --max-warnings 0",
+    "lintfix": "eslint src --fix"
   },
   "devDependencies": {
     "babel": "^6.5.2",
