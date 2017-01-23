@@ -42,7 +42,10 @@ export default class LinearLayout extends UpdatableContainer {
      * @returns {PIXI.Point}
      */
     getChildPosition(child) {
-        return new PIXI.Point(this.x - this.pivot.x + child.x - child.pivot.x, this.y - this.pivot.y + child.y - child.pivot.y);
+        return new PIXI.Point(
+            this.x - this.pivot.x + child.x - child.pivot.x,
+            this.y - this.pivot.y + child.y - child.pivot.y
+        );
     }
 
     update(game) {

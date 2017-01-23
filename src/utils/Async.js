@@ -30,8 +30,6 @@ const Async = {
         if (context) predicate = predicate.bind(context);
         return setTimeout(predicate, delay || 1);
     },
-
-
     /**
      * Simple interval method
      * @async
@@ -52,7 +50,7 @@ const Async = {
      * @returns {Promise}
      */
     wait(time) {
-        return new Promise(function (resolve, reject) {
+        return new Promise(function waitPromiseExecutor(resolve) {
             if (typeof time === 'undefined' || time === 0) requestAnimationFrame(resolve);
             else Async.timeout(requestAnimationFrame.bind(window, resolve), time);
         });
@@ -87,8 +85,8 @@ const Async = {
         return Async.loopAsync(function whileAsyncIteratorWrapper() {
             let promise = predicate.call(context);
             const isntPromise = (typeof promise === 'object' && !('then' in promise) && typeof promise.then !== 'function');
-            if (isntPromise || typeof promise !== 'object' && promise) {
-                promise = wait(0);
+            if (isntPromise || (typeof promise !== 'object' && promise)) {
+                promise = Async.wait(0);
             }
             return promise;
         }, context);
@@ -125,16 +123,19 @@ const Async = {
     mapAsync(array, iterator, context) {
         const out = new Array(array.length);
         return Async.forEachAsync(array, function mapAsyncIteratorWrapper(value, index, array) {
-            return iterator.call(context, value, index, array).then(function (outputValue) {
-            return out[index] = outputValue;
-            },
-            function (outputValue) {
-            return out[index] = outputValue;
-            });
+            return iterator.call(context, value, index, array)
+                .then(function mapResolveAssigner(outputValue) {
+                    out[index] = outputValue;
+                    return outputValue;
+                },
+                function mapRejectAssigner(outputValue) {
+                    out[index] = outputValue;
+                    return outputValue;
+                });
         }).then(function mapAsyncOutput() {
             return out;
         });
-    }
+    },
 };
 
 export default Async;

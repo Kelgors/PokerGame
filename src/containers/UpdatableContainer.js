@@ -15,8 +15,8 @@ export default class UpdatableContainer extends PIXI.Container {
      * @param {Game} game
      */
     updateChildren(game) {
-        this.children.forEach(function (child) { 
-            child.update(game); 
+        this.children.forEach(function updateChildrenInnerIterator(child) {
+            child.update(game);
         });
     }
 

@@ -1,9 +1,10 @@
-import PIXI from 'pixi.js';
 import LinearLayout from './LinearLayout';
 import CardsGenerator from '../cards/CardsGenerator';
 import CardCollection from '../cards/CardCollection';
-import Card from '../cards/Card';
 
+/**
+ * @virtual
+ */
 export default class AbsCardArea extends LinearLayout {
 
     /**
@@ -12,9 +13,9 @@ export default class AbsCardArea extends LinearLayout {
      * @param {number} cardSlots
      */
     constructor(x, y, cardSlots) {
-        super({ 
+        super({
             orientation: LinearLayout.ORIENTATION_HORIZONTAL,
-            childMargin: CardsGenerator.CARD_WIDTH / 10
+            childMargin: CardsGenerator.CARD_WIDTH / 10,
         });
         this.x = x;
         this.y = y;
@@ -39,7 +40,10 @@ export default class AbsCardArea extends LinearLayout {
         this.slots = new Array(this.cardSlots);
     }
 
-    clearCards() {
+    /**
+     * Remove all card from the area without destroying them
+     */
+    clearCards() {
         this.slots.forEach((card) => {
             this.removeCard(card);
         });
@@ -51,8 +55,9 @@ export default class AbsCardArea extends LinearLayout {
      * @returns {Card}
      */
     removeCardAt(index) {
-        if (index < 0 || index >= this.cardSlots) 
+        if (index < 0 || index >= this.cardSlots) {
             throw new Error(`OutOfBoundException: AbsCardArea(slots: ${this.cardSlots}), index was ${index}`);
+        }
         const card = this.slots[index];
         if (card) {
             this.removeChild(card);
@@ -73,7 +78,7 @@ export default class AbsCardArea extends LinearLayout {
      * @returns {CardCollection}
      */
     getCards() {
-        return new CardCollection(this.slots.slice(0))
+        return new CardCollection(this.slots.slice(0));
     }
 
     /**
@@ -113,12 +118,14 @@ export default class AbsCardArea extends LinearLayout {
 
     /**
      * Add a child to a slot
-     * @param {Card} card
-     * @param {number} index
+     * @param {Card} card The card to add
+     * @param {number} index The index where to add the card
+     * returns {PIXI.DisplayObject} The added object
      */
     addCardAt(card, index) {
-        if (index < 0 || index >= this.cardSlots) 
+        if (index < 0 || index >= this.cardSlots) {
             throw new Error(`OutOfBoundException: AbsCardArea(slots: ${this.cardSlots}), index was ${index}`);
+        }
         if (this.slots[index]) {
             this.removeChild(this.slots[index]);
         }
@@ -139,11 +146,18 @@ export default class AbsCardArea extends LinearLayout {
         }
     }
 
+    /**
+     * Update the pivot of the layout regarding to all children size
+     */
     updateLayoutPivot() {
-        const width = this.cardSlots * CardsGenerator.CARD_WIDTH + (this.cardSlots-1) * this.childMargin;
+        const width = (this.cardSlots * CardsGenerator.CARD_WIDTH) + ((this.cardSlots - 1) * this.childMargin);
         this.pivot.set(width / 2, 0);
     }
 
-    update(game) {}
+    /**
+     * Should update the object
+     * @virtual
+     */
+    update() { return; }
 
 }
