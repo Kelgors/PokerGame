@@ -44,3 +44,6 @@ website/lib.js
 website/lib.min.js
 website/index.css
 website/index.min.css
+website/poker_game.js
+website/poker_game.min.js
+website/poker_game.min.js.map

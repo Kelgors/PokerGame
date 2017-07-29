@@ -16,7 +16,7 @@ import preset from 'babel-preset-es2015';
 import {name} from '../package.json';
 
 const srcPath = 'src/';
-const buildPath = 'dist/';
+const buildPath = 'website/';
 
 const libFiles = [
 //  'bower_components/mersennetwister/src/MersenneTwister.js',
