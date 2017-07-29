@@ -20,9 +20,9 @@ const buildPath = 'website/';
 
 const libFiles = [
 //  'bower_components/mersennetwister/src/MersenneTwister.js',
-  'bower_components/jquery/dist/jquery.min.js',
-  'bower_components/pixi.js/dist/pixi.min.js',
-  'bower_components/navigo/lib/navigo.min.js'
+  'bower_components/jquery/dist/jquery.js',
+  'node_modules/pixi.js/dist/pixi.js',
+  'bower_components/navigo/lib/navigo.js'
 ];
 
 function _generate(bundle){
